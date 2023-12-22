@@ -1,0 +1,158 @@
+
+
+{{ define "statsData" }}
+        {{with .KNStats}}
+            <td>{{.NumSubmissions}}</td>
+            <td>{{.ExcludingMultiple}}</td>
+            <td>{{.UniqueUsers}}</td>
+            <td>{{.UniqueProblems}}</td>
+        {{else}}
+        <td colspan="4">N/A</td>
+        {{end}}
+        {{with .IAStats}}
+            <td>{{.NumSubmissions}}</td>
+            <td>{{.ExcludingMultiple}}</td>
+            <td>{{.UniqueUsers}}</td>
+            <td>{{.UniqueProblems}}</td>
+        {{else}}
+        <td colspan="4">N/A</td>
+        {{end}}
+{{ end }}
+<h1>Kilonova/Infoarena submission activity statistics</h1>
+
+{{$format := "2006-01-02 15:04:05 UTC"}}
+
+{{$dayFormat := "2006-01-02"}}
+{{$monthFormat := "January 2006"}}
+
+<p>Last updated at: {{.LastUpdatedAt.Format $format}}.</p>
+
+<p>This page should (hopefully) be updated every 4 or so hours. All times are in UTC (and statistics were collected across the UTC day boundary). Please note that Infoarena statistics do not measure "waiting" and "evaluating" submissions.</p>
+
+<hr/>
+
+{{with .KNStats}}
+<p>Last submission found (Kilonova): {{.LastSubmission.Format $format}}</p>
+{{end}}
+{{with .IAStats}}
+<p>Last submission found (Infoarena): {{.LastSubmission.Format $format}}</p>
+{{end}}
+
+<hr/>
+
+{{if .NumDays}}
+    <h2>Statistics for the last {{.NumDays}} days</h2>
+
+    <table class="table table-bordered table-striped table-hover">
+        <thead>
+            <tr>
+                <th rowspan="2" scope="col">Date (UTC)</th>
+                <th colspan="4" scope="colgroup" class="text-center">Kilonova</th>
+                <th colspan="4" scope="colgroup" class="text-center">Infoarena</th>
+            </tr>
+            <tr>
+                <th scope="col">Submission Count</th>
+                <th scope="col">Unique (user, problem) pair sub. count</th>
+                <th scope="col">Unique user count</th>
+                <th scope="col">Unique problem count</th>
+                <th scope="col">Submission Count</th>
+                <th scope="col">Unique (user, problem) pair sub. count</th>
+                <th scope="col">Unique user count</th>
+                <th scope="col">Unique problem count</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .DaysStats}}
+            <tr>
+                <th scope="row">{{.DayUTC.Format $dayFormat}}</td>
+                {{ template "statsData" . }}
+            </tr>
+            {{else}}
+            <tr>
+                <td colspan="999">No data available</td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+
+    <hr/>
+{{end}}
+
+
+{{ if .NumRollingMonths }}
+    <h2>Statistics for the last {{.NumRollingMonths}} <code>{{.RollingInterval}}-day</code> intervals</h2>
+    {{ $rollInterval := .RollingInterval }}
+    <table class="table table-bordered table-striped table-hover">
+        <thead>
+            <tr>
+                <th rowspan="2" scope="col">Interval (UTC)</th>
+                <th colspan="4" scope="colgroup" class="text-center">Kilonova</th>
+                <th colspan="4" scope="colgroup" class="text-center">Infoarena</th>
+            </tr>
+            <tr>
+                <th scope="col">Submission Count</th>
+                <th scope="col">Unique (user, problem) pair sub. count</th>
+                <th scope="col">Unique user count</th>
+                <th scope="col">Unique problem count</th>
+                <th scope="col">Submission Count</th>
+                <th scope="col">Unique (user, problem) pair sub. count</th>
+                <th scope="col">Unique user count</th>
+                <th scope="col">Unique problem count</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .RollingMonthsStats}}
+            <tr>
+                <th scope="row">{{.DayUTC.Format $dayFormat}} - {{(.DayUTC.AddDate 0 0 $rollInterval).Format $dayFormat}}</td>
+                {{ template "statsData" . }}
+            </tr>
+            {{else}}
+            <tr>
+                <td colspan="999">No data available</td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+
+    <hr/>
+{{ end }}
+
+{{ if .NumMonths }}
+    <h2>Statistics for the last {{.NumMonths}} calendar months</h2>
+
+    <table class="table table-bordered table-striped table-hover">
+        <thead>
+            <tr>
+                <th rowspan="2" scope="col">Month (UTC)</th>
+                <th colspan="4" scope="colgroup" class="text-center">Kilonova</th>
+                <th colspan="4" scope="colgroup" class="text-center">Infoarena</th>
+            </tr>
+            <tr>
+                <th scope="col">Submission Count</th>
+                <th scope="col">Unique (user, problem) pair sub. count</th>
+                <th scope="col">Unique user count</th>
+                <th scope="col">Unique problem count</th>
+                <th scope="col">Submission Count</th>
+                <th scope="col">Unique (user, problem) pair sub. count</th>
+                <th scope="col">Unique user count</th>
+                <th scope="col">Unique problem count</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .MonthsStats}}
+            <tr>
+                <th scope="row">{{.DayUTC.Format $monthFormat}}</td>
+                {{ template "statsData" . }}
+            </tr>
+            {{else}}
+            <tr>
+                <td colspan="999">No data available</td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+
+    <hr/>
+{{ end }}
+
+
