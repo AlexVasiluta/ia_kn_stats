@@ -36,6 +36,8 @@ func InsertSubmission(ctx context.Context, execer sqlx.ExecerContext, sub *IASub
 
 type DB struct {
 	db *sqlx.DB
+
+	PlatformName string
 }
 
 func (s *DB) InsertMonitorPage(ctx context.Context, subs []*IASubmission) (int, error) {
@@ -77,6 +79,8 @@ func (s *DB) SubmissionExists(ctx context.Context, id int) (bool, error) {
 }
 
 type StatsRow struct {
+	PlatformName string `json:"platform_name" db:"platform_name"`
+
 	// Trimmed down to yyyy-mm-dd, no hours/minutes
 	Time time.Time `json:"time"`
 
@@ -96,6 +100,8 @@ type StatsRow struct {
 }
 
 type Statistics struct {
+	PlatformName string `json:"platform_name"`
+
 	LastSubmission time.Time `json:"last_sub"`
 
 	DayStats []*StatsRow `json:"day_stats"`
@@ -116,6 +122,7 @@ func (s *DB) getStats(ctx context.Context, query string, args ...any) ([]*StatsR
 		if err != nil {
 			panic(err)
 		}
+		stats[i].PlatformName = s.PlatformName
 		stats[i].Time = t
 		stats[i].SQLiteTime = nil
 	}
@@ -175,6 +182,8 @@ func (s *DB) GetInfoarenaStats(ctx context.Context, numDays, numMonths, rollInte
 	}
 
 	return &Statistics{
+		PlatformName: s.PlatformName,
+
 		LastSubmission: time.Unix(lastTime, 0).UTC(),
 
 		DayStats:           dayStats,

@@ -1,4 +1,5 @@
-ia_kn_stats
-dump.db
+ia_kn_stats*
+*.db
 run.sh
+run_dev.sh
 logs

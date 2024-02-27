@@ -2,6 +2,7 @@ package ia_scraper
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -29,14 +30,15 @@ type IASubmission struct {
 }
 
 type Scraper struct {
-	DB *DB
+	DB   *DB
+	Host string
 }
 
 func (sc *Scraper) ParseNewSubs(ctx context.Context) error {
 	// Keep inserting until finding first submission that was already inserted
 	offset := 0
 	for {
-		subs, err := ParseMonitorPage(ctx, offset, nil)
+		subs, err := ParseMonitorPage(ctx, sc.Host, offset, nil)
 		if err != nil {
 			zap.S().Warn(err)
 			return err
@@ -61,7 +63,7 @@ func (sc *Scraper) ParseBacklog(ctx context.Context) error {
 		panic(err)
 	}
 	for {
-		subs, err := ParseMonitorPage(ctx, newOffset, nil)
+		subs, err := ParseMonitorPage(ctx, sc.Host, newOffset, nil)
 		if err != nil {
 			zap.S().Warn(err)
 			continue
@@ -76,30 +78,38 @@ func (sc *Scraper) ParseBacklog(ctx context.Context) error {
 		}
 		newOffset -= entriesCount
 	}
-	zap.S().Info("Starting offset for long scrape: ", newOffset)
+	zap.S().Infof("Starting offset for long scrape (%s): %d", sc.DB.PlatformName, newOffset)
 	for {
 		if int(newOffset/100)*100%1000 == 0 {
-			zap.S().Info("Offset: ", newOffset)
+			zap.S().Infof("Offset (%s): %d", sc.DB.PlatformName, newOffset)
 		}
-		subs, err := ParseMonitorPage(ctx, newOffset, nil)
+		subs, err := ParseMonitorPage(ctx, sc.Host, newOffset, nil)
 		if err != nil {
+			if errors.Is(err, context.Canceled) {
+				zap.S().Info("Quitting for ", sc.DB.PlatformName)
+				return nil
+			}
 			zap.S().Warn(err)
 			continue
 		}
 		if _, err := sc.DB.InsertMonitorPage(ctx, subs); err != nil {
+			if errors.Is(err, context.Canceled) {
+				zap.S().Info("Quitting for ", sc.DB.PlatformName)
+				return nil
+			}
 			zap.S().Warn(err)
 			continue
 		}
 		newOffset += entriesCount
 		if len(subs) == 0 {
-			zap.S().Info("Found page with no more submissions, might have reached the end")
+			zap.S().Infof("(%s) Found page with no more submissions, might have reached the end", sc.DB.PlatformName)
 			return nil
 		}
 	}
 }
 
-func New() (*Scraper, error) {
-	d, err := sqlx.Connect("sqlite3", "dump.db")
+func New(host, name, dbname string) (*Scraper, error) {
+	d, err := sqlx.Connect("sqlite3", dbname)
 	if err != nil {
 		return nil, err
 	}
@@ -125,6 +135,6 @@ CREATE TABLE IF NOT EXISTS submissions (
 		return nil, err
 	}
 
-	db := &DB{db: d}
-	return &Scraper{db}, nil
+	db := &DB{db: d, PlatformName: name}
+	return &Scraper{db, host}, nil
 }

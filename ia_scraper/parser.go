@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -36,10 +37,12 @@ const iaFormat = "_2 January 06 15:04:05"
 
 func parseSubmission(node *html.Node) (*IASubmission, error) {
 	sel := goquery.NewDocumentFromNode(node)
+
 	var sub = new(IASubmission)
-	id, err := strconv.Atoi(strings.TrimPrefix(sel.Children().Nodes[0].FirstChild.Attr[0].Val, "/job_detail/"))
+	idText := strings.TrimSpace(goquery.NewDocumentFromNode(sel.Children().Nodes[0]).Text())
+	id, err := strconv.Atoi(strings.TrimPrefix(idText, "#"))
 	if err != nil {
-		zap.S().Warn("Invalid ID from ", sel.Children().Nodes[0].FirstChild.Attr[0].Val)
+		zap.S().Warn("Invalid ID from ", idText)
 		return nil, err
 	}
 	sub.ID = id
@@ -72,27 +75,30 @@ func parseSubmission(node *html.Node) (*IASubmission, error) {
 	if sizeText == "..." {
 		sub.SizeKB = nil
 	} else {
+		sizeText = strings.ReplaceAll(sizeText, ",", ".")
 		size, err := strconv.ParseFloat(sizeText, 64)
 		if err != nil {
-			zap.S().Warnf("Invalid size string %q (id: %d)", size, sub.ID)
+			zap.S().Warnf("Invalid size string %q (id: %d)", sizeText, sub.ID)
 		} else {
 			sub.SizeKB = &size
 		}
 	}
 
-	date := strings.TrimSpace(sel.Children().Nodes[5].FirstChild.Data)
+	date := strings.ReplaceAll(strings.TrimSpace(sel.Children().Nodes[5].FirstChild.Data), ". 20", " ")
+	date = strings.ReplaceAll(date, "sept", "sep")
+	date = strings.ReplaceAll(date, "mai 20", "mai ")
 	for k, v := range replacements {
 		date = strings.ReplaceAll(date, k, v)
 	}
 	t, err := time.ParseInLocation(iaFormat, date, location)
 	if err != nil {
-		zap.S().Info("Invalid time from infoarena", date)
+		zap.S().Info("Invalid time from infoarena: ", date)
 		return nil, errors.New("invalid time")
 	}
 	sub.Date = t
 
 	statusText := strings.TrimSpace(goquery.NewDocumentFromNode(sel.Children().Nodes[6]).Text())
-	if strings.Contains(statusText, "ignorata") {
+	if strings.Contains(statusText, "ignorat") {
 		sub.Ignored = true
 	} else if strings.Contains(statusText, "asteptare") {
 		// Waiting
@@ -114,7 +120,7 @@ func parseSubmission(node *html.Node) (*IASubmission, error) {
 				}
 				sub.Score = &score
 			} else {
-				zap.S().Info(sub.ID, statusText)
+				// zap.S().Info(sub.ID, " ", statusText)
 			}
 		}
 
@@ -130,12 +136,18 @@ func parseSubmission(node *html.Node) (*IASubmission, error) {
 
 const entriesCount = 250
 
-func ParseMonitorPage(ctx context.Context, offset int, jobID *int) ([]*IASubmission, error) {
+func ParseMonitorPage(ctx context.Context, host string, offset int, jobID *int) ([]*IASubmission, error) {
 	var jobid int
 	if jobID != nil {
 		jobid = *jobID
 	}
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("https://www.infoarena.ro/monitor?display_entries=%d&only_table=true&first_entry=%d&job_id=%d", entriesCount, offset, jobid), nil)
+	url := url.URL{
+		Scheme:   "https",
+		Host:     host,
+		Path:     "monitor",
+		RawQuery: fmt.Sprintf("display_entries=%d&only_table=true&first_entry=%d&job_id=%d", entriesCount, offset, jobid),
+	}
+	req, err := http.NewRequestWithContext(ctx, "GET", url.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -148,8 +160,12 @@ func ParseMonitorPage(ctx context.Context, offset int, jobID *int) ([]*IASubmiss
 	if err != nil {
 		return nil, err
 	}
+	sel := doc.Selection
+	if doc.Find("#monitor-table").Length() > 0 { // Full page, NerdArena, go to monitor table
+		sel = doc.Find("#monitor-table")
+	}
 	var subs = make([]*IASubmission, 0, entriesCount+10)
-	for _, node := range doc.Find("tbody").Children().Nodes {
+	for _, node := range sel.Find("tbody").Children().Nodes {
 		sub, err := parseSubmission(node)
 		if err != nil {
 			return nil, err

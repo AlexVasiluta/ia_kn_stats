@@ -1,24 +1,18 @@
 
 
 {{ define "statsData" }}
-        {{with .KNStats}}
+    {{range .Platforms}}
+        {{with .}}
             <td>{{.NumSubmissions}}</td>
             <td>{{.ExcludingMultiple}}</td>
             <td>{{.UniqueUsers}}</td>
             <td>{{.UniqueProblems}}</td>
         {{else}}
-        <td colspan="4">N/A</td>
+            <td colspan="4">N/A</td>
         {{end}}
-        {{with .IAStats}}
-            <td>{{.NumSubmissions}}</td>
-            <td>{{.ExcludingMultiple}}</td>
-            <td>{{.UniqueUsers}}</td>
-            <td>{{.UniqueProblems}}</td>
-        {{else}}
-        <td colspan="4">N/A</td>
-        {{end}}
+    {{end}}
 {{ end }}
-<h1>Kilonova/Infoarena submission activity statistics</h1>
+<h1>{{.H1Name}} submission activity statistics</h1>
 
 {{$format := "2006-01-02 15:04:05 UTC"}}
 
@@ -27,15 +21,12 @@
 
 <p>Last updated at: {{.LastUpdatedAt.Format $format}}.</p>
 
-<p>This page should (hopefully) be updated every 4 or so hours. All times are in UTC (and statistics were collected across the UTC day boundary). Please note that Infoarena statistics do not measure "waiting" and "evaluating" submissions.</p>
+<p>This page should (hopefully) be updated every 4 or so hours. All times are in UTC (and statistics were collected across the UTC day boundary). {{if .ShowWaitingDisclaimer}}Please note that Infoarena statistics do not measure "waiting" and "evaluating" submissions.{{end}}</p>
 
 <hr/>
 
-{{with .KNStats}}
-<p>Last submission found (Kilonova): {{.LastSubmission.Format $format}}</p>
-{{end}}
-{{with .IAStats}}
-<p>Last submission found (Infoarena): {{.LastSubmission.Format $format}}</p>
+{{range .Platforms}}
+<p>Last submission found ({{.PlatformName}}): {{.LastSubmission.Format $format}}</p>
 {{end}}
 
 <hr/>
@@ -47,18 +38,17 @@
         <thead>
             <tr>
                 <th rowspan="2" scope="col">Date (UTC)</th>
-                <th colspan="4" scope="colgroup" class="text-center">Kilonova</th>
-                <th colspan="4" scope="colgroup" class="text-center">Infoarena</th>
+                {{range .Platforms}}
+				<th colspan="4" scope="colgroup" class="text-center">{{.PlatformName}}</th>
+                {{end}}
             </tr>
             <tr>
+                {{range .Platforms}}
                 <th scope="col">Submission Count</th>
                 <th scope="col">Unique (user, problem) pair sub. count</th>
                 <th scope="col">Unique user count</th>
                 <th scope="col">Unique problem count</th>
-                <th scope="col">Submission Count</th>
-                <th scope="col">Unique (user, problem) pair sub. count</th>
-                <th scope="col">Unique user count</th>
-                <th scope="col">Unique problem count</th>
+				{{end}}
             </tr>
         </thead>
         <tbody>
@@ -86,18 +76,17 @@
         <thead>
             <tr>
                 <th rowspan="2" scope="col">Interval (UTC)</th>
-                <th colspan="4" scope="colgroup" class="text-center">Kilonova</th>
-                <th colspan="4" scope="colgroup" class="text-center">Infoarena</th>
+                {{range .Platforms}}
+				<th colspan="4" scope="colgroup" class="text-center">{{.PlatformName}}</th>
+                {{end}}
             </tr>
             <tr>
+                {{range .Platforms}}
                 <th scope="col">Submission Count</th>
                 <th scope="col">Unique (user, problem) pair sub. count</th>
                 <th scope="col">Unique user count</th>
                 <th scope="col">Unique problem count</th>
-                <th scope="col">Submission Count</th>
-                <th scope="col">Unique (user, problem) pair sub. count</th>
-                <th scope="col">Unique user count</th>
-                <th scope="col">Unique problem count</th>
+				{{end}}
             </tr>
         </thead>
         <tbody>
@@ -124,18 +113,17 @@
         <thead>
             <tr>
                 <th rowspan="2" scope="col">Month (UTC)</th>
-                <th colspan="4" scope="colgroup" class="text-center">Kilonova</th>
-                <th colspan="4" scope="colgroup" class="text-center">Infoarena</th>
+                {{range .Platforms}}
+				<th colspan="4" scope="colgroup" class="text-center">{{.PlatformName}}</th>
+                {{end}}
             </tr>
             <tr>
+                {{range .Platforms}}
                 <th scope="col">Submission Count</th>
                 <th scope="col">Unique (user, problem) pair sub. count</th>
                 <th scope="col">Unique user count</th>
                 <th scope="col">Unique problem count</th>
-                <th scope="col">Submission Count</th>
-                <th scope="col">Unique (user, problem) pair sub. count</th>
-                <th scope="col">Unique user count</th>
-                <th scope="col">Unique problem count</th>
+				{{end}}
             </tr>
         </thead>
         <tbody>

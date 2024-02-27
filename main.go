@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"os"
+	"os/signal"
 
 	"go.uber.org/zap"
 	"vasiluta.ro/ia_kn_stats/ia_scraper"
@@ -20,41 +21,95 @@ var (
 	exportRollInterval  = flag.Int("export_roll_days", 30, "Number of days in rolling month interval")
 
 	kilonovaDSN = flag.String("kilonova_dsn", "", "DSN to connect to kn database")
+
+	kilonovaFlag  = flag.Bool("kilonova", true, "Add stats for kilonova")
+	infoarenaFlag = flag.Bool("infoarena", true, "Add stats for infoarena")
+	nerdarenaFlag = flag.Bool("nerdarena", true, "Add stats for nerdarena")
 )
 
 func main() {
 	flag.Parse()
 
-	sc, err := ia_scraper.New()
+	nerdarena, err := ia_scraper.New("www.nerdarena.ro", "Nerdarena", "dump_nerdarena.db")
 	if err != nil {
 		zap.S().Fatal(err)
 	}
 
-	if err := sc.ParseNewSubs(context.Background()); err != nil {
+	infoarena, err := ia_scraper.New("www.infoarena.ro", "Infoarena", "dump.db")
+	if err != nil {
 		zap.S().Fatal(err)
 	}
 
-	if *scrapeForward {
-		zap.S().Info("Scrape forward for infoarena. Press Ctrl+C to quit")
-		if err := sc.ParseBacklog(context.Background()); err != nil {
+	if *nerdarenaFlag {
+		if err := nerdarena.ParseNewSubs(context.Background()); err != nil {
 			zap.S().Fatal(err)
 		}
 	}
 
-	if *exportStats {
-		if *kilonovaDSN == "" {
-			zap.S().Fatal("Empty kilonova DSN")
-		}
-		iaStats, err := sc.DB.GetInfoarenaStats(context.Background(), *exportDays, *exportMonths, *exportRollInterval, *exportRollingMonths)
-		if err != nil {
+	if *infoarenaFlag {
+		if err := infoarena.ParseNewSubs(context.Background()); err != nil {
 			zap.S().Fatal(err)
+		}
+	}
+
+	if *scrapeForward {
+		if !(*infoarenaFlag || *nerdarenaFlag) {
+			zap.S().Fatal("Cannot scrape forward if both infoarena and nerdarena are disabled")
+		}
+		zap.S().Info("Scrape forward for infoarena/nerdarena. Press Ctrl+C to quit")
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+		if *infoarenaFlag {
+			go func() {
+				if err := infoarena.ParseBacklog(ctx); err != nil {
+					zap.S().Warn(err)
+					stop()
+				}
+			}()
+		}
+		if *nerdarenaFlag {
+			go func() {
+				if err := nerdarena.ParseBacklog(ctx); err != nil {
+					zap.S().Warn(err)
+					stop()
+				}
+			}()
 		}
 
-		knStats, err := GetKilonovaStats(context.Background(), *kilonovaDSN, *exportDays, *exportMonths, *exportRollInterval, *exportRollingMonths)
-		if err != nil {
-			zap.S().Fatal(err)
+		<-ctx.Done()
+		zap.S().Info("Closing")
+		os.Exit(0)
+	}
+
+	if *exportStats {
+		stats := []*ia_scraper.Statistics{}
+
+		if *kilonovaFlag {
+			if *kilonovaDSN == "" {
+				zap.S().Fatal("Empty kilonova DSN")
+			}
+
+			knStats, err := GetKilonovaStats(context.Background(), *kilonovaDSN, *exportDays, *exportMonths, *exportRollInterval, *exportRollingMonths)
+			if err != nil {
+				zap.S().Fatal(err)
+			}
+			stats = append(stats, knStats)
 		}
-		// spew.Dump(knStats)
+
+		if *infoarenaFlag {
+			iaStats, err := infoarena.DB.GetInfoarenaStats(context.Background(), *exportDays, *exportMonths, *exportRollInterval, *exportRollingMonths)
+			if err != nil {
+				zap.S().Fatal(err)
+			}
+			stats = append(stats, iaStats)
+		}
+
+		if *nerdarenaFlag {
+			naStats, err := nerdarena.DB.GetInfoarenaStats(context.Background(), *exportDays, *exportMonths, *exportRollInterval, *exportRollingMonths)
+			if err != nil {
+				zap.S().Fatal(err)
+			}
+			stats = append(stats, naStats)
+		}
 
 		f, err := os.Create(*exportStatsPath)
 		if err != nil {
@@ -63,12 +118,13 @@ func main() {
 		defer f.Close()
 
 		if err := ExportToVROBody(context.Background(), &Config{
-			KNStats:          knStats,
-			IAStats:          iaStats,
+			Platforms:        stats,
 			NumDays:          *exportDays,
 			NumMonths:        *exportMonths,
 			RollingInterval:  *exportRollInterval,
 			NumRollingMonths: *exportRollingMonths,
+
+			ShowWaitingDisclaimer: *infoarenaFlag || *nerdarenaFlag,
 		}, f); err != nil {
 			zap.S().Fatal(err)
 		}
