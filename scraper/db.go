@@ -1,7 +1,8 @@
-package ia_scraper
+package scraper
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"time"
 
@@ -10,7 +11,27 @@ import (
 	"go.uber.org/zap"
 )
 
-func InsertSubmission(ctx context.Context, execer sqlx.ExecerContext, sub *IASubmission) (bool, error) {
+type Submission struct {
+	ID int
+
+	Username    string
+	DisplayName string
+
+	ProblemID   *string
+	ProblemName *string
+
+	SizeKB *float64
+	Date   time.Time
+
+	Ignored       bool
+	CompileError  bool
+	InternalError bool
+	Score         *int
+
+	Handled bool
+}
+
+func InsertSubmission(ctx context.Context, execer sqlx.ExecerContext, sub *Submission) (bool, error) {
 	_, err := execer.ExecContext(ctx,
 		`INSERT INTO submissions (id, username, display_name, problem_id, problem_name, size_kb, date, ignored, compile_error, internal_error, score) 
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -40,7 +61,7 @@ type DB struct {
 	PlatformName string
 }
 
-func (s *DB) InsertMonitorPage(ctx context.Context, subs []*IASubmission) (int, error) {
+func (s *DB) InsertMonitorPage(ctx context.Context, subs []*Submission) (int, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, err
@@ -78,6 +99,36 @@ func (s *DB) SubmissionExists(ctx context.Context, id int) (bool, error) {
 	return cnt > 0, err
 }
 
+func NewDB(platformName string, dbname string) (*DB, error) {
+	d, err := sqlx.Connect("sqlite3", dbname)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := d.Exec(`
+CREATE TABLE IF NOT EXISTS submissions (
+	id   INTEGER PRIMARY KEY,
+
+	username TEXT NOT NULL,
+	display_name TEXT NOT NULL,
+
+	problem_id TEXT,
+	problem_name TEXT,
+
+	size_kb REAL,
+	date TEXT NOT NULL,
+
+	ignored BOOLEAN NOT NULL DEFAULT FALSE,
+	compile_error BOOLEAN NOT NULL DEFAULT FALSE,
+	internal_error BOOLEAN NOT NULL DEFAULT FALSE,
+	score INTEGER
+);	
+`); err != nil {
+		return nil, err
+	}
+
+	return &DB{db: d, PlatformName: platformName}, nil
+}
+
 type StatsRow struct {
 	PlatformName string `json:"platform_name" db:"platform_name"`
 
@@ -109,6 +160,21 @@ type Statistics struct {
 	RollingMonthsStats []*StatsRow `json:"rolling_month_stats"`
 
 	MonthsStats []*StatsRow `json:"month_stats"`
+}
+
+func (s *DB) GetFurthestTime(ctx context.Context) (*time.Time, error) {
+	var t sql.NullString
+	if err := s.db.QueryRowContext(ctx, "SELECT DATETIME(MIN(date)) FROM submissions").Scan(&t); err != nil {
+		return nil, err
+	}
+	if !t.Valid {
+		return nil, nil
+	}
+	tt, err := time.ParseInLocation(time.DateTime, t.String, time.UTC)
+	if err != nil {
+		panic(err)
+	}
+	return &tt, nil
 }
 
 func (s *DB) getStats(ctx context.Context, query string, args ...any) ([]*StatsRow, error) {

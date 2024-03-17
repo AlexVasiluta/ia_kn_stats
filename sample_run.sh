@@ -3,7 +3,7 @@
 
 cd "$(dirname "$0")"
 
-go build -v .
+go build -v . || exit 0
 
 ./ia_kn_stats -export_days=30 \
     -export_months=12 -export_roll_months=3 -export_roll_days=30 \

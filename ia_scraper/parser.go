@@ -13,6 +13,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"go.uber.org/zap"
 	"golang.org/x/net/html"
+	"vasiluta.ro/ia_kn_stats/scraper"
 )
 
 var location *time.Location
@@ -35,10 +36,10 @@ var replacements = map[string]string{
 // 13 September 22 00:51:27
 const iaFormat = "_2 January 06 15:04:05"
 
-func parseSubmission(node *html.Node) (*IASubmission, error) {
+func parseSubmission(node *html.Node) (*scraper.Submission, error) {
 	sel := goquery.NewDocumentFromNode(node)
 
-	var sub = new(IASubmission)
+	var sub = new(scraper.Submission)
 	idText := strings.TrimSpace(goquery.NewDocumentFromNode(sel.Children().Nodes[0]).Text())
 	id, err := strconv.Atoi(strings.TrimPrefix(idText, "#"))
 	if err != nil {
@@ -119,9 +120,9 @@ func parseSubmission(node *html.Node) (*IASubmission, error) {
 					zap.S().Warn("Scanf error: ", err)
 				}
 				sub.Score = &score
-			} else {
-				// zap.S().Info(sub.ID, " ", statusText)
-			}
+			} // else {
+			// 	// zap.S().Info(sub.ID, " ", statusText)
+			// }
 		}
 
 		if strings.Contains(statusText, "configurarea") || strings.Contains(statusText, "sistem") { // system error or problem config error
@@ -136,16 +137,12 @@ func parseSubmission(node *html.Node) (*IASubmission, error) {
 
 const entriesCount = 250
 
-func ParseMonitorPage(ctx context.Context, host string, offset int, jobID *int) ([]*IASubmission, error) {
-	var jobid int
-	if jobID != nil {
-		jobid = *jobID
-	}
+func ParseMonitorPage(ctx context.Context, host string, offset int) ([]*scraper.Submission, error) {
 	url := url.URL{
 		Scheme:   "https",
 		Host:     host,
 		Path:     "monitor",
-		RawQuery: fmt.Sprintf("display_entries=%d&only_table=true&first_entry=%d&job_id=%d", entriesCount, offset, jobid),
+		RawQuery: fmt.Sprintf("display_entries=%d&only_table=true&first_entry=%d", entriesCount, offset),
 	}
 	req, err := http.NewRequestWithContext(ctx, "GET", url.String(), nil)
 	if err != nil {
@@ -164,7 +161,7 @@ func ParseMonitorPage(ctx context.Context, host string, offset int, jobID *int) 
 	if doc.Find("#monitor-table").Length() > 0 { // Full page, NerdArena, go to monitor table
 		sel = doc.Find("#monitor-table")
 	}
-	var subs = make([]*IASubmission, 0, entriesCount+10)
+	var subs = make([]*scraper.Submission, 0, entriesCount+10)
 	for _, node := range sel.Find("tbody").Children().Nodes {
 		sub, err := parseSubmission(node)
 		if err != nil {
@@ -175,8 +172,29 @@ func ParseMonitorPage(ctx context.Context, host string, offset int, jobID *int) 
 	return subs, nil
 }
 
+var _ scraper.Parser[int] = &IAParser{}
+
+type IAParser struct {
+	Host string
+}
+
+func (p *IAParser) PageZeroOffset() int {
+	return 0
+}
+
+func (p *IAParser) FurthestOffset(ctx context.Context, db *scraper.DB) (int, error) {
+	return db.CountSubmissions(ctx)
+}
+
+func (p *IAParser) NextPageOffset(t int, subs []*scraper.Submission) int {
+	return t + len(subs)
+}
+
+func (p *IAParser) GetPage(ctx context.Context, offset int) ([]*scraper.Submission, error) {
+	return ParseMonitorPage(ctx, p.Host, offset)
+}
+
 func init() {
-	initLogger(true)
 	loc, err := time.LoadLocation("Europe/Bucharest")
 	if err != nil {
 		panic(err)

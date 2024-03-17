@@ -7,7 +7,9 @@ import (
 	"os/signal"
 
 	"go.uber.org/zap"
+	csacademyscraper "vasiluta.ro/ia_kn_stats/csacademy_scraper"
 	"vasiluta.ro/ia_kn_stats/ia_scraper"
+	"vasiluta.ro/ia_kn_stats/scraper"
 )
 
 var (
@@ -25,17 +27,22 @@ var (
 	kilonovaFlag  = flag.Bool("kilonova", true, "Add stats for kilonova")
 	infoarenaFlag = flag.Bool("infoarena", true, "Add stats for infoarena")
 	nerdarenaFlag = flag.Bool("nerdarena", true, "Add stats for nerdarena")
+	csacademyFlag = flag.Bool("csacademy", false, "Add stats for csacademy")
 )
 
 func main() {
 	flag.Parse()
-
-	nerdarena, err := ia_scraper.New("www.nerdarena.ro", "Nerdarena", "dump_nerdarena.db")
+	nerdarena, err := scraper.New("Nerdarena", "dump_nerdarena.db", &ia_scraper.IAParser{Host: "www.nerdarena.ro"})
 	if err != nil {
 		zap.S().Fatal(err)
 	}
 
-	infoarena, err := ia_scraper.New("www.infoarena.ro", "Infoarena", "dump.db")
+	infoarena, err := scraper.New("Infoarena", "dump.db", &ia_scraper.IAParser{Host: "www.infoarena.ro"})
+	if err != nil {
+		zap.S().Fatal(err)
+	}
+
+	csacademy, err := scraper.New("CSAcademy", "dump_csa.db", &csacademyscraper.CSAParser{})
 	if err != nil {
 		zap.S().Fatal(err)
 	}
@@ -52,11 +59,17 @@ func main() {
 		}
 	}
 
-	if *scrapeForward {
-		if !(*infoarenaFlag || *nerdarenaFlag) {
-			zap.S().Fatal("Cannot scrape forward if both infoarena and nerdarena are disabled")
+	if *csacademyFlag {
+		if err := csacademy.ParseNewSubs(context.Background()); err != nil {
+			zap.S().Fatal(err)
 		}
-		zap.S().Info("Scrape forward for infoarena/nerdarena. Press Ctrl+C to quit")
+	}
+
+	if *scrapeForward {
+		if !(*infoarenaFlag || *nerdarenaFlag || *csacademyFlag) {
+			zap.S().Fatal("Cannot scrape forward if all fetching backends are disabled")
+		}
+		zap.S().Info("Scrape forward for infoarena/nerdarena/csacademy. Press Ctrl+C to quit")
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 		if *infoarenaFlag {
 			go func() {
@@ -74,6 +87,14 @@ func main() {
 				}
 			}()
 		}
+		if *csacademyFlag {
+			go func() {
+				if err := csacademy.ParseBacklog(ctx); err != nil {
+					zap.S().Warn(err)
+					stop()
+				}
+			}()
+		}
 
 		<-ctx.Done()
 		zap.S().Info("Closing")
@@ -81,7 +102,7 @@ func main() {
 	}
 
 	if *exportStats {
-		stats := []*ia_scraper.Statistics{}
+		stats := []*scraper.Statistics{}
 
 		if *kilonovaFlag {
 			if *kilonovaDSN == "" {
@@ -111,6 +132,14 @@ func main() {
 			stats = append(stats, naStats)
 		}
 
+		if *csacademyFlag {
+			csaStats, err := csacademy.DB.GetInfoarenaStats(context.Background(), *exportDays, *exportMonths, *exportRollInterval, *exportRollingMonths)
+			if err != nil {
+				zap.S().Fatal(err)
+			}
+			stats = append(stats, csaStats)
+		}
+
 		f, err := os.Create(*exportStatsPath)
 		if err != nil {
 			zap.S().Fatal(err)
@@ -125,6 +154,7 @@ func main() {
 			NumRollingMonths: *exportRollingMonths,
 
 			ShowWaitingDisclaimer: *infoarenaFlag || *nerdarenaFlag,
+			ShowCSADisclaimer:     *csacademyFlag,
 		}, f); err != nil {
 			zap.S().Fatal(err)
 		}

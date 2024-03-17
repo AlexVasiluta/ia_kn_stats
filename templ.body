@@ -23,6 +23,10 @@
 
 <p>This page should (hopefully) be updated every 4 or so hours. All times are in UTC (and statistics were collected across the UTC day boundary). {{if .ShowWaitingDisclaimer}}Please note that Infoarena statistics do not measure "waiting" and "evaluating" submissions.{{end}}</p>
 
+{{if .ShowCSADisclaimer}}
+<p>CSAcademy is a complex platform and the numbers will most likely not be fully accurate.</p>
+{{end}}
+
 <hr/>
 
 {{range .Platforms}}

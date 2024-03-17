@@ -12,7 +12,7 @@ import (
 	_ "embed"
 
 	"github.com/jackc/pgx/v5"
-	"vasiluta.ro/ia_kn_stats/ia_scraper"
+	"vasiluta.ro/ia_kn_stats/scraper"
 )
 
 //go:embed templ.body
@@ -24,12 +24,12 @@ var (
 
 const Kilonova = "Kilonova"
 
-func getStats(ctx context.Context, conn *pgx.Conn, query string, args ...any) ([]*ia_scraper.StatsRow, error) {
+func getStats(ctx context.Context, conn *pgx.Conn, query string, args ...any) ([]*scraper.StatsRow, error) {
 	rows, _ := conn.Query(ctx, query, args...)
-	return pgx.CollectRows(rows, pgx.RowToAddrOfStructByNameLax[ia_scraper.StatsRow])
+	return pgx.CollectRows(rows, pgx.RowToAddrOfStructByNameLax[scraper.StatsRow])
 }
 
-func GetKilonovaStats(ctx context.Context, dsn string, numDays, numMonths, rollInterval, numRollingMonths int) (*ia_scraper.Statistics, error) {
+func GetKilonovaStats(ctx context.Context, dsn string, numDays, numMonths, rollInterval, numRollingMonths int) (*scraper.Statistics, error) {
 	config, err := pgx.ParseConfig(dsn)
 	if err != nil {
 		return nil, err
@@ -96,7 +96,7 @@ func GetKilonovaStats(ctx context.Context, dsn string, numDays, numMonths, rollI
 		return nil, err
 	}
 
-	return &ia_scraper.Statistics{
+	return &scraper.Statistics{
 		PlatformName:   Kilonova,
 		LastSubmission: lastTime,
 
@@ -109,11 +109,11 @@ func GetKilonovaStats(ctx context.Context, dsn string, numDays, numMonths, rollI
 type daysStruct struct {
 	DayUTC time.Time
 
-	Platforms []*ia_scraper.StatsRow
+	Platforms []*scraper.StatsRow
 }
 
 type Config struct {
-	Platforms []*ia_scraper.Statistics
+	Platforms []*scraper.Statistics
 	NumDays   int
 	NumMonths int
 
@@ -121,16 +121,17 @@ type Config struct {
 	NumRollingMonths int
 
 	ShowWaitingDisclaimer bool
+	ShowCSADisclaimer     bool
 }
 
-func convertStats(platforms [][]*ia_scraper.StatsRow, order []string) []daysStruct {
-	var days = make(map[time.Time]map[string]*ia_scraper.StatsRow)
+func convertStats(platforms [][]*scraper.StatsRow, order []string) []daysStruct {
+	var days = make(map[time.Time]map[string]*scraper.StatsRow)
 
 	for _, platform := range platforms {
 		for _, day := range platform {
 			d := days[day.Time.UTC()]
 			if d == nil {
-				d = make(map[string]*ia_scraper.StatsRow)
+				d = make(map[string]*scraper.StatsRow)
 			}
 			d[day.PlatformName] = day
 			days[day.Time.UTC()] = d
@@ -139,7 +140,7 @@ func convertStats(platforms [][]*ia_scraper.StatsRow, order []string) []daysStru
 
 	var days2 []daysStruct
 	for dUtc, val := range days {
-		p := make([]*ia_scraper.StatsRow, len(order))
+		p := make([]*scraper.StatsRow, len(order))
 		for i := range order {
 			day, ok := val[order[i]]
 			if ok {
@@ -171,46 +172,30 @@ func ExportToVROBody(ctx context.Context, conf *Config, w io.Writer) error {
 	}
 
 	args := struct {
+		*Config
+
 		LastUpdatedAt time.Time
 		H1Name        string
-
-		Platforms []*ia_scraper.Statistics
-
-		NumDays   int
-		NumMonths int
-
-		RollingInterval  int
-		NumRollingMonths int
 
 		DaysStats          []daysStruct
 		MonthsStats        []daysStruct
 		RollingMonthsStats []daysStruct
-
-		ShowWaitingDisclaimer bool
 	}{
 		H1Name: strings.Join(names, "/"),
+		Config: conf,
 
 		LastUpdatedAt: time.Now().UTC(),
-		Platforms:     conf.Platforms,
-
-		NumDays:   conf.NumDays,
-		NumMonths: conf.NumMonths,
-
-		RollingInterval:  conf.RollingInterval,
-		NumRollingMonths: conf.NumRollingMonths,
 
 		DaysStats:          convertStats(getDayStats(conf.Platforms)),
 		MonthsStats:        convertStats(getMonthStats(conf.Platforms)),
 		RollingMonthsStats: convertStats(getRollingMonthStats(conf.Platforms)),
-
-		ShowWaitingDisclaimer: conf.ShowWaitingDisclaimer,
 	}
 
 	return templ.Execute(w, args)
 }
 
-func getDayStats(p []*ia_scraper.Statistics) ([][]*ia_scraper.StatsRow, []string) {
-	rrows := make([][]*ia_scraper.StatsRow, len(p))
+func getDayStats(p []*scraper.Statistics) ([][]*scraper.StatsRow, []string) {
+	rrows := make([][]*scraper.StatsRow, len(p))
 	order := make([]string, len(p))
 	for i := range p {
 		rrows[i] = p[i].DayStats
@@ -218,8 +203,8 @@ func getDayStats(p []*ia_scraper.Statistics) ([][]*ia_scraper.StatsRow, []string
 	}
 	return rrows, order
 }
-func getMonthStats(p []*ia_scraper.Statistics) ([][]*ia_scraper.StatsRow, []string) {
-	rrows := make([][]*ia_scraper.StatsRow, len(p))
+func getMonthStats(p []*scraper.Statistics) ([][]*scraper.StatsRow, []string) {
+	rrows := make([][]*scraper.StatsRow, len(p))
 	order := make([]string, len(p))
 	for i := range p {
 		rrows[i] = p[i].MonthsStats
@@ -227,8 +212,8 @@ func getMonthStats(p []*ia_scraper.Statistics) ([][]*ia_scraper.StatsRow, []stri
 	}
 	return rrows, order
 }
-func getRollingMonthStats(p []*ia_scraper.Statistics) ([][]*ia_scraper.StatsRow, []string) {
-	rrows := make([][]*ia_scraper.StatsRow, len(p))
+func getRollingMonthStats(p []*scraper.Statistics) ([][]*scraper.StatsRow, []string) {
+	rrows := make([][]*scraper.StatsRow, len(p))
 	order := make([]string, len(p))
 	for i := range p {
 		rrows[i] = p[i].RollingMonthsStats

@@ -1,4 +1,4 @@
-package ia_scraper
+package main
 
 import (
 	"os"
@@ -34,4 +34,8 @@ func initLogger(debug bool) error {
 	zap.ReplaceGlobals(logg)
 
 	return nil
+}
+
+func init() {
+	initLogger(true)
 }
