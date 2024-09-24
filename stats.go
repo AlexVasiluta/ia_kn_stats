@@ -42,7 +42,7 @@ func GetKilonovaStats(ctx context.Context, dsn string, numDays, numMonths, rollI
 	defer conn.Close(context.Background())
 
 	dayStats, err := getStats(ctx, conn, `WITH starting_data AS (
-		SELECT user_id, problem_id, DATE_TRUNC('day', created_at AT TIME ZONE 'UTC', 'UTC') AS day FROM submissions
+		SELECT user_id, problem_id, DATE_TRUNC('day', created_at AT TIME ZONE 'UTC', 'UTC') AS day FROM submissions WHERE user_id <> 2951
 	   ) SELECT 
 			$2 AS platform_name,
 	   		COUNT(*) AS num_submissions, 
@@ -58,7 +58,7 @@ func GetKilonovaStats(ctx context.Context, dsn string, numDays, numMonths, rollI
 	}
 
 	monthStats, err := getStats(ctx, conn, `WITH starting_data AS (
-		SELECT user_id, problem_id, DATE_TRUNC('month', created_at AT TIME ZONE 'UTC', 'UTC') AS day FROM submissions
+		SELECT user_id, problem_id, DATE_TRUNC('month', created_at AT TIME ZONE 'UTC', 'UTC') AS day FROM submissions WHERE user_id <> 2951
 	   ) SELECT 
 	   		$2 AS platform_name,
 	   		COUNT(*) AS num_submissions, 
@@ -77,7 +77,7 @@ func GetKilonovaStats(ctx context.Context, dsn string, numDays, numMonths, rollI
 			DATE_BIN(($1 || ' days')::interval,
 				DATE_TRUNC('day', created_at AT TIME ZONE 'UTC', 'UTC'),
 				DATE_TRUNC('day', NOW() AT TIME ZONE 'UTC', 'UTC') + '1 day'::interval	
-			) AS day FROM submissions
+			) AS day FROM submissions WHERE user_id <> 2951
 	   ) SELECT 
 	   		$3 AS platform_name,
 	   		COUNT(*) AS num_submissions, 

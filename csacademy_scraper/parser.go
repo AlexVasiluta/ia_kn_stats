@@ -55,8 +55,7 @@ type CSAResponse struct {
 
 var _ scraper.Parser[*time.Time] = &CSAParser{}
 
-type CSAParser struct {
-}
+type CSAParser struct{}
 
 func (p *CSAParser) PageZeroOffset() *time.Time {
 	return nil

@@ -28,6 +28,7 @@ var (
 	infoarenaFlag = flag.Bool("infoarena", true, "Add stats for infoarena")
 	nerdarenaFlag = flag.Bool("nerdarena", true, "Add stats for nerdarena")
 	csacademyFlag = flag.Bool("csacademy", false, "Add stats for csacademy")
+	campionFlag   = flag.Bool("campion", false, "Add stats for campion.edu.ro")
 )
 
 func main() {
@@ -43,6 +44,12 @@ func main() {
 	}
 
 	csacademy, err := scraper.New("CSAcademy", "dump_csa.db", &csacademyscraper.CSAParser{})
+	if err != nil {
+		zap.S().Fatal(err)
+	}
+
+	//campion, err := scraper.New("Campion", "dump_campion.db", &campionscraper.CampionParser{})
+	campion, err := scraper.New("Campion", "dump_campion.db", &ia_scraper.IAParser{Host: "invalid"})
 	if err != nil {
 		zap.S().Fatal(err)
 	}
@@ -65,11 +72,17 @@ func main() {
 		}
 	}
 
+	if *campionFlag {
+		if err := campion.ParseNewSubs(context.Background()); err != nil {
+			zap.S().Fatal(err)
+		}
+	}
+
 	if *scrapeForward {
-		if !(*infoarenaFlag || *nerdarenaFlag || *csacademyFlag) {
+		if !(*infoarenaFlag || *nerdarenaFlag || *csacademyFlag || *campionFlag) {
 			zap.S().Fatal("Cannot scrape forward if all fetching backends are disabled")
 		}
-		zap.S().Info("Scrape forward for infoarena/nerdarena/csacademy. Press Ctrl+C to quit")
+		zap.S().Info("Scrape forward for extern backends. Press Ctrl+C to quit")
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 		if *infoarenaFlag {
 			go func() {
@@ -90,6 +103,14 @@ func main() {
 		if *csacademyFlag {
 			go func() {
 				if err := csacademy.ParseBacklog(ctx); err != nil {
+					zap.S().Warn(err)
+					stop()
+				}
+			}()
+		}
+		if *campionFlag {
+			go func() {
+				if err := campion.ParseBacklog(ctx); err != nil {
 					zap.S().Warn(err)
 					stop()
 				}
@@ -138,6 +159,14 @@ func main() {
 				zap.S().Fatal(err)
 			}
 			stats = append(stats, csaStats)
+		}
+
+		if *campionFlag {
+			campionStats, err := campion.DB.GetInfoarenaStats(context.Background(), *exportDays, *exportMonths, *exportRollInterval, *exportRollingMonths)
+			if err != nil {
+				zap.S().Fatal(err)
+			}
+			stats = append(stats, campionStats)
 		}
 
 		f, err := os.Create(*exportStatsPath)
