@@ -38,7 +38,7 @@ func main() {
 		zap.S().Fatal(err)
 	}
 
-	infoarena, err := scraper.New("Infoarena", "dump.db", &ia_scraper.IAParser{Host: "www.infoarena.ro"})
+	infoarena, err := scraper.New("Infoarena", "dump.db", &ia_scraper.IAParser{Host: "infoarena.ro"})
 	if err != nil {
 		zap.S().Fatal(err)
 	}
@@ -61,6 +61,7 @@ func main() {
 	}
 
 	if *infoarenaFlag {
+		zap.S().Info("Parsing infoarena")
 		if err := infoarena.ParseNewSubs(context.Background()); err != nil {
 			zap.S().Fatal(err)
 		}

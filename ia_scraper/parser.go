@@ -2,15 +2,16 @@ package ia_scraper
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/astrocode-id/go-flaresolverr"
 	"go.uber.org/zap"
 	"golang.org/x/net/html"
 	"vasiluta.ro/ia_kn_stats/scraper"
@@ -144,16 +145,23 @@ func ParseMonitorPage(ctx context.Context, host string, offset int) ([]*scraper.
 		Path:     "monitor",
 		RawQuery: fmt.Sprintf("display_entries=%d&only_table=true&first_entry=%d", entriesCount, offset),
 	}
-	req, err := http.NewRequestWithContext(ctx, "GET", url.String(), nil)
+
+	client, err := flaresolverr.NewClient(flaresolverr.Config{})
 	if err != nil {
 		return nil, err
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.Get(flaresolverr.GetParams{
+		URL: url.String(),
+	})
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
-	doc, err := goquery.NewDocumentFromReader(resp.Body)
+	var s string
+	if err := json.Unmarshal(resp, &s); err != nil {
+		return nil, err
+	}
+
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(s))
 	if err != nil {
 		return nil, err
 	}
