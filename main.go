@@ -7,6 +7,7 @@ import (
 	"os/signal"
 
 	"go.uber.org/zap"
+	"vasiluta.ro/ia_kn_stats/algocode_scraper"
 	csacademyscraper "vasiluta.ro/ia_kn_stats/csacademy_scraper"
 	"vasiluta.ro/ia_kn_stats/ia_scraper"
 	"vasiluta.ro/ia_kn_stats/scraper"
@@ -26,6 +27,7 @@ var (
 
 	kilonovaFlag  = flag.Bool("kilonova", true, "Add stats for kilonova")
 	infoarenaFlag = flag.Bool("infoarena", true, "Add stats for infoarena")
+	algocodeFlag  = flag.Bool("algocode", true, "Add stats for algocode")
 	nerdarenaFlag = flag.Bool("nerdarena", true, "Add stats for nerdarena")
 	csacademyFlag = flag.Bool("csacademy", false, "Add stats for csacademy")
 	campionFlag   = flag.Bool("campion", false, "Add stats for campion.edu.ro")
@@ -43,6 +45,10 @@ func main() {
 		zap.S().Fatal(err)
 	}
 
+	algocode, err := scraper.New("AlgoCode", "dump_algocode.db", &algocode_scraper.AlgolympParser{Host: "https://code.algolymp.com/api/v2/public"})
+	if err != nil {
+		zap.S().Fatal(err)
+	}
 	csacademy, err := scraper.New("CSAcademy", "dump_csa.db", &csacademyscraper.CSAParser{})
 	if err != nil {
 		zap.S().Fatal(err)
@@ -73,6 +79,12 @@ func main() {
 		}
 	}
 
+	if *algocodeFlag {
+		if err := algocode.ParseNewSubs(context.Background()); err != nil {
+			zap.S().Fatal(err)
+		}
+	}
+
 	if *campionFlag {
 		if err := campion.ParseNewSubs(context.Background()); err != nil {
 			zap.S().Fatal(err)
@@ -80,7 +92,7 @@ func main() {
 	}
 
 	if *scrapeForward {
-		if !(*infoarenaFlag || *nerdarenaFlag || *csacademyFlag || *campionFlag) {
+		if !(*infoarenaFlag || *nerdarenaFlag || *csacademyFlag || *campionFlag || *algocodeFlag) {
 			zap.S().Fatal("Cannot scrape forward if all fetching backends are disabled")
 		}
 		zap.S().Info("Scrape forward for extern backends. Press Ctrl+C to quit")
@@ -117,6 +129,14 @@ func main() {
 				}
 			}()
 		}
+		if *algocodeFlag {
+			go func() {
+				if err := algocode.ParseBacklog(ctx); err != nil {
+					zap.S().Warn(err)
+					stop()
+				}
+			}()
+		}
 
 		<-ctx.Done()
 		zap.S().Info("Closing")
@@ -144,6 +164,13 @@ func main() {
 				zap.S().Fatal(err)
 			}
 			stats = append(stats, iaStats)
+		}
+		if *algocodeFlag {
+			algocodeStats, err := algocode.DB.GetInfoarenaStats(context.Background(), *exportDays, *exportMonths, *exportRollInterval, *exportRollingMonths)
+			if err != nil {
+				zap.S().Fatal(err)
+			}
+			stats = append(stats, algocodeStats)
 		}
 
 		if *nerdarenaFlag {

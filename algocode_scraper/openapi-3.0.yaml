@@ -1,0 +1,1540 @@
+components:
+  schemas:
+    ApiContest:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          example: https://code.algolymp.com/api/v2/public/schemas/ApiContest.json
+          format: uri
+          readOnly: true
+          type: string
+        created_at:
+          format: date-time
+          type: string
+        description:
+          type: string
+        editors:
+          items:
+            $ref: "#/components/schemas/UserBrief"
+          nullable: true
+          type: array
+        end_time:
+          format: date-time
+          type: string
+        icpc_submission_penalty:
+          format: int64
+          type: integer
+        id:
+          format: int64
+          type: integer
+        leaderboard_advanced_filter:
+          type: boolean
+        leaderboard_freeze:
+          format: date-time
+          nullable: true
+          type: string
+        leaderboard_style:
+          type: string
+        max_subs:
+          format: int64
+          type: integer
+        mentor_only:
+          type: boolean
+        name:
+          type: string
+        per_user_time:
+          format: int64
+          type: integer
+        public_join:
+          type: boolean
+        public_leaderboard:
+          type: boolean
+        question_cooldown:
+          format: int64
+          type: integer
+        register_during_contest:
+          type: boolean
+        start_time:
+          format: date-time
+          type: string
+        submission_cooldown:
+          format: int64
+          type: integer
+        testers:
+          items:
+            $ref: "#/components/schemas/UserBrief"
+          nullable: true
+          type: array
+        type:
+          type: string
+        visible:
+          type: boolean
+      required:
+        - id
+        - created_at
+        - name
+        - editors
+        - testers
+        - description
+        - public_join
+        - register_during_contest
+        - visible
+        - mentor_only
+        - public_leaderboard
+        - leaderboard_style
+        - leaderboard_freeze
+        - icpc_submission_penalty
+        - leaderboard_advanced_filter
+        - submission_cooldown
+        - question_cooldown
+        - start_time
+        - end_time
+        - per_user_time
+        - type
+        - max_subs
+      type: object
+    ApiProblem:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          example: https://code.algolymp.com/api/v2/public/schemas/ApiProblem.json
+          format: uri
+          readOnly: true
+          type: string
+        category:
+          nullable: true
+          type: string
+        category_class:
+          nullable: true
+          type: string
+        communication_processes:
+          format: int64
+          type: integer
+        console_input:
+          type: boolean
+        created_at:
+          format: date-time
+          type: string
+        default_ide_language:
+          type: string
+        default_points:
+          type: string
+        difficulty:
+          type: string
+        id:
+          format: int64
+          type: integer
+        memory_limit:
+          format: int64
+          type: integer
+        name:
+          type: string
+        published_at:
+          format: date-time
+          nullable: true
+          type: string
+        score_precision:
+          format: int32
+          type: integer
+        score_scale:
+          type: string
+        scoring_strategy:
+          type: string
+        source_credits:
+          type: string
+        source_size:
+          format: int64
+          type: integer
+        statementVariants:
+          items:
+            $ref: "#/components/schemas/StatementVariant"
+          nullable: true
+          type: array
+        submitLanguages:
+          items:
+            $ref: "#/components/schemas/Language"
+          nullable: true
+          type: array
+        tags:
+          items:
+            $ref: "#/components/schemas/Tag"
+          nullable: true
+          type: array
+        task_type:
+          type: string
+        test_name:
+          type: string
+        time_limit:
+          format: double
+          type: number
+        visible:
+          type: boolean
+        visible_tests:
+          type: boolean
+      required:
+        - id
+        - created_at
+        - name
+        - test_name
+        - default_points
+        - default_ide_language
+        - visible
+        - visible_tests
+        - time_limit
+        - memory_limit
+        - source_size
+        - source_credits
+        - score_scale
+        - console_input
+        - score_precision
+        - published_at
+        - scoring_strategy
+        - task_type
+        - communication_processes
+        - category
+        - category_class
+        - difficulty
+        - submitLanguages
+        - statementVariants
+        - tags
+      type: object
+    ContestGetInputBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          example: https://code.algolymp.com/api/v2/public/schemas/ContestGetInputBody.json
+          format: uri
+          readOnly: true
+          type: string
+        editor_id:
+          format: int64
+          nullable: true
+          type: integer
+        ended:
+          type: boolean
+        future:
+          type: boolean
+        limit:
+          format: int64
+          maximum: 50
+          type: integer
+        offset:
+          format: int64
+          type: integer
+        running:
+          type: boolean
+        type:
+          type: string
+      type: object
+    ContestSearchResult:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          example: https://code.algolymp.com/api/v2/public/schemas/ContestSearchResult.json
+          format: uri
+          readOnly: true
+          type: string
+        contests:
+          items:
+            $ref: "#/components/schemas/ApiContest"
+          nullable: true
+          type: array
+      required:
+        - contests
+      type: object
+    ErrorDetail:
+      additionalProperties: false
+      properties:
+        location:
+          description: Where the error occurred, e.g. 'body.items[3].tags' or 'path.thing-id'
+          type: string
+        message:
+          description: Error message text
+          type: string
+        value:
+          description: The value at the given location
+      type: object
+    ErrorModel:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          example: https://code.algolymp.com/api/v2/public/schemas/ErrorModel.json
+          format: uri
+          readOnly: true
+          type: string
+        detail:
+          description: A human-readable explanation specific to this occurrence of the problem.
+          example: Property foo is required but is missing.
+          type: string
+        errors:
+          description: Optional list of individual error details
+          items:
+            $ref: "#/components/schemas/ErrorDetail"
+          nullable: true
+          type: array
+        instance:
+          description: A URI reference that identifies the specific occurrence of the problem.
+          example: https://example.com/error-log/abc123
+          format: uri
+          type: string
+        status:
+          description: HTTP status code
+          example: 400
+          format: int64
+          type: integer
+        title:
+          description: A short, human-readable summary of the problem type. This value should not change between occurrences of the error.
+          example: Bad Request
+          type: string
+        type:
+          default: about:blank
+          description: A URI reference to human-readable documentation for the error.
+          example: https://example.com/errors/example
+          format: uri
+          type: string
+      type: object
+    FullSearchProblem:
+      additionalProperties: false
+      properties:
+        attempted_by:
+          format: int64
+          type: integer
+        category:
+          nullable: true
+          type: string
+        category_class:
+          nullable: true
+          type: string
+        created_at:
+          format: date-time
+          type: string
+        default_ide_language:
+          type: string
+        difficulty:
+          type: string
+        id:
+          format: int64
+          type: integer
+        is_editor:
+          type: boolean
+        max_score:
+          nullable: true
+          type: string
+        memory_limit:
+          format: int64
+          type: integer
+        name:
+          type: string
+        published_at:
+          format: date-time
+          nullable: true
+          type: string
+        score_user_id:
+          format: int64
+          nullable: true
+          type: integer
+        solved_by:
+          format: int64
+          type: integer
+        source_credits:
+          type: string
+        source_size:
+          format: int64
+          type: integer
+        tags:
+          items:
+            $ref: "#/components/schemas/Tag"
+          nullable: true
+          type: array
+        task_type:
+          type: string
+        time_limit:
+          format: double
+          type: number
+        visible:
+          type: boolean
+        visible_tests:
+          type: boolean
+      required:
+        - id
+        - created_at
+        - name
+        - category
+        - category_class
+        - default_ide_language
+        - visible
+        - visible_tests
+        - time_limit
+        - memory_limit
+        - source_size
+        - source_credits
+        - published_at
+        - task_type
+        - score_user_id
+        - max_score
+        - is_editor
+        - tags
+        - difficulty
+        - solved_by
+        - attempted_by
+      type: object
+    Language:
+      additionalProperties: false
+      properties:
+        internal_name:
+          type: string
+        printable_name:
+          type: string
+      required:
+        - internal_name
+        - printable_name
+      type: object
+    Problem:
+      additionalProperties: false
+      properties:
+        category:
+          nullable: true
+          type: string
+        category_class:
+          nullable: true
+          type: string
+        communication_processes:
+          format: int64
+          type: integer
+        console_input:
+          type: boolean
+        created_at:
+          format: date-time
+          type: string
+        default_ide_language:
+          type: string
+        default_points:
+          type: string
+        difficulty:
+          type: string
+        id:
+          format: int64
+          type: integer
+        memory_limit:
+          format: int64
+          type: integer
+        name:
+          type: string
+        published_at:
+          format: date-time
+          nullable: true
+          type: string
+        score_precision:
+          format: int32
+          type: integer
+        score_scale:
+          type: string
+        scoring_strategy:
+          type: string
+        source_credits:
+          type: string
+        source_size:
+          format: int64
+          type: integer
+        task_type:
+          type: string
+        test_name:
+          type: string
+        time_limit:
+          format: double
+          type: number
+        visible:
+          type: boolean
+        visible_tests:
+          type: boolean
+      required:
+        - id
+        - created_at
+        - name
+        - test_name
+        - default_points
+        - default_ide_language
+        - visible
+        - visible_tests
+        - time_limit
+        - memory_limit
+        - source_size
+        - source_credits
+        - score_scale
+        - console_input
+        - score_precision
+        - published_at
+        - scoring_strategy
+        - task_type
+        - communication_processes
+        - category
+        - category_class
+        - difficulty
+      type: object
+    ProblemAITutorConfig:
+      additionalProperties: false
+      properties:
+        common_mistakes:
+          items:
+            type: string
+          nullable: true
+          type: array
+        created_at:
+          format: date-time
+          type: string
+        enabled:
+          type: boolean
+        hint_ladder: {}
+        mentor_notes:
+          type: string
+        model:
+          type: string
+        official_solution_summary:
+          type: string
+        problem_context:
+          type: string
+        problem_id:
+          format: int64
+          type: integer
+        reveal_policy:
+          type: string
+        system_policy:
+          type: string
+        updated_at:
+          format: date-time
+          type: string
+        updated_by:
+          format: int64
+          type: integer
+      required:
+        - problem_id
+        - created_at
+        - updated_at
+        - enabled
+        - model
+        - system_policy
+        - problem_context
+        - official_solution_summary
+        - common_mistakes
+        - hint_ladder
+        - reveal_policy
+        - mentor_notes
+      type: object
+    ProblemEducationBundle:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          example: https://code.algolymp.com/api/v2/public/schemas/ProblemEducationBundle.json
+          format: uri
+          readOnly: true
+          type: string
+        ai_tutor:
+          $ref: "#/components/schemas/ProblemAITutorConfig"
+        ai_tutor_available:
+          type: boolean
+        locked_official_solutions:
+          format: int64
+          type: integer
+        metadata:
+          $ref: "#/components/schemas/ProblemEducationMetadata"
+        official_solutions:
+          items:
+            $ref: "#/components/schemas/ProblemOfficialSolution"
+          nullable: true
+          type: array
+        tutorials:
+          items:
+            $ref: "#/components/schemas/ProblemTutorial"
+          nullable: true
+          type: array
+      required:
+        - official_solutions
+        - locked_official_solutions
+        - tutorials
+        - ai_tutor_available
+      type: object
+    ProblemEducationMetadata:
+      additionalProperties: false
+      properties:
+        algolymp_lesson_index:
+          format: int64
+          type: integer
+        algolymp_lesson_title:
+          type: string
+        algolymp_material_url:
+          type: string
+        algolymp_program_id:
+          format: int64
+          type: integer
+        algolymp_video_id:
+          type: string
+        created_at:
+          format: date-time
+          type: string
+        estimated_difficulty:
+          type: string
+        grade:
+          type: string
+        level:
+          type: string
+        mentor_notes:
+          type: string
+        prerequisites:
+          items:
+            type: string
+          nullable: true
+          type: array
+        primary_topic:
+          type: string
+        problem_id:
+          format: int64
+          type: integer
+        program:
+          type: string
+        quality_status:
+          type: string
+        role:
+          type: string
+        secondary_topics:
+          items:
+            type: string
+          nullable: true
+          type: array
+        source_slug:
+          type: string
+        source_type:
+          type: string
+        source_url:
+          type: string
+        updated_at:
+          format: date-time
+          type: string
+        updated_by:
+          format: int64
+          type: integer
+      required:
+        - problem_id
+        - created_at
+        - updated_at
+        - algolymp_lesson_title
+        - algolymp_video_id
+        - algolymp_material_url
+        - program
+        - grade
+        - level
+        - primary_topic
+        - secondary_topics
+        - role
+        - prerequisites
+        - estimated_difficulty
+        - source_type
+        - source_slug
+        - source_url
+        - quality_status
+        - mentor_notes
+      type: object
+    ProblemGetInputBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          example: https://code.algolymp.com/api/v2/public/schemas/ProblemGetInputBody.json
+          format: uri
+          readOnly: true
+          type: string
+        category:
+          type: string
+        category_class:
+          type: string
+        descending:
+          type: boolean
+        difficulty:
+          type: string
+        ids:
+          items:
+            format: int64
+            type: integer
+          type: array
+        lang:
+          type: string
+        limit:
+          format: int64
+          minimum: 0
+          type: integer
+        name:
+          type: string
+        name_fuzzy:
+          type: string
+        offset:
+          format: int64
+          minimum: 0
+          type: integer
+        ordering:
+          type: string
+        score_user_id:
+          format: int64
+          type: integer
+        tags:
+          items:
+            $ref: "#/components/schemas/TagGroup"
+          type: array
+        translation_flagged:
+          type: boolean
+      type: object
+    ProblemOfficialSolution:
+      additionalProperties: false
+      properties:
+        code:
+          type: string
+        complexity:
+          type: string
+        created_at:
+          format: date-time
+          type: string
+        created_by:
+          format: int64
+          type: integer
+        id:
+          format: int64
+          type: integer
+        language:
+          type: string
+        markdown:
+          type: string
+        problem_id:
+          format: int64
+          type: integer
+        status:
+          type: string
+        title:
+          type: string
+        updated_at:
+          format: date-time
+          type: string
+        updated_by:
+          format: int64
+          type: integer
+        visibility_policy:
+          type: string
+      required:
+        - id
+        - created_at
+        - updated_at
+        - problem_id
+        - language
+        - title
+        - markdown
+        - code
+        - complexity
+        - visibility_policy
+        - status
+      type: object
+    ProblemSearchResult:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          example: https://code.algolymp.com/api/v2/public/schemas/ProblemSearchResult.json
+          format: uri
+          readOnly: true
+          type: string
+        count:
+          format: int64
+          type: integer
+        problems:
+          items:
+            $ref: "#/components/schemas/FullSearchProblem"
+          nullable: true
+          type: array
+      required:
+        - problems
+        - count
+      type: object
+    ProblemStatementContent:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          example: https://code.algolymp.com/api/v2/public/schemas/ProblemStatementContent.json
+          format: uri
+          readOnly: true
+          type: string
+        content:
+          type: string
+        format:
+          type: string
+        language:
+          type: string
+        type:
+          type: string
+      required:
+        - content
+        - format
+      type: object
+    ProblemTutorial:
+      additionalProperties: false
+      properties:
+        algolymp_video_id:
+          type: string
+        created_at:
+          format: date-time
+          type: string
+        created_by:
+          format: int64
+          type: integer
+        id:
+          format: int64
+          type: integer
+        language:
+          type: string
+        markdown:
+          type: string
+        problem_id:
+          format: int64
+          type: integer
+        status:
+          type: string
+        title:
+          type: string
+        updated_at:
+          format: date-time
+          type: string
+        updated_by:
+          format: int64
+          type: integer
+        video_url:
+          type: string
+      required:
+        - id
+        - created_at
+        - updated_at
+        - problem_id
+        - language
+        - title
+        - markdown
+        - video_url
+        - algolymp_video_id
+        - status
+      type: object
+    ScoredProblem:
+      additionalProperties: false
+      properties:
+        category:
+          nullable: true
+          type: string
+        category_class:
+          nullable: true
+          type: string
+        communication_processes:
+          format: int64
+          type: integer
+        console_input:
+          type: boolean
+        created_at:
+          format: date-time
+          type: string
+        default_ide_language:
+          type: string
+        default_points:
+          type: string
+        difficulty:
+          type: string
+        id:
+          format: int64
+          type: integer
+        is_editor:
+          type: boolean
+        max_score:
+          nullable: true
+          type: string
+        memory_limit:
+          format: int64
+          type: integer
+        name:
+          type: string
+        published_at:
+          format: date-time
+          nullable: true
+          type: string
+        score_precision:
+          format: int32
+          type: integer
+        score_scale:
+          type: string
+        score_user_id:
+          format: int64
+          nullable: true
+          type: integer
+        scoring_strategy:
+          type: string
+        source_credits:
+          type: string
+        source_size:
+          format: int64
+          type: integer
+        task_type:
+          type: string
+        test_name:
+          type: string
+        time_limit:
+          format: double
+          type: number
+        visible:
+          type: boolean
+        visible_tests:
+          type: boolean
+      required:
+        - score_user_id
+        - max_score
+        - is_editor
+        - id
+        - created_at
+        - name
+        - test_name
+        - default_points
+        - default_ide_language
+        - visible
+        - visible_tests
+        - time_limit
+        - memory_limit
+        - source_size
+        - source_credits
+        - score_scale
+        - console_input
+        - score_precision
+        - published_at
+        - scoring_strategy
+        - task_type
+        - communication_processes
+        - category
+        - category_class
+        - difficulty
+      type: object
+    StatementVariant:
+      additionalProperties: false
+      properties:
+        format:
+          description: Statement format. Markdown is the recommended one to interpret, as PDFs are usually served only for historical purposes.
+          enum:
+            - md
+            - pdf
+          type: string
+        language:
+          description: Statement language
+          enum:
+            - en
+            - ro
+          type: string
+        lastUpdatedAt:
+          description: Last updated time of the underlying file for the statement.
+          format: date-time
+          type: string
+        permalink:
+          description: Link to the statement's contents, raw. It is not guaranteed that this URL will remain the same.
+          type: string
+        renderURL:
+          description: For markdown statements, this URL represents the HTML rendered version of this statement. See additional documentation for how to correctly render the HTML. It is not guaranteed that this URL will remain the same.
+          type: string
+        type:
+          description: Usually empty, can be used to distinguish between multiple loose types of variants.
+          type: string
+      required:
+        - language
+        - format
+        - type
+        - permalink
+        - renderURL
+        - lastUpdatedAt
+      type: object
+    Submission:
+      additionalProperties: false
+      properties:
+        code_size:
+          format: int64
+          type: integer
+        compile_error:
+          nullable: true
+          type: boolean
+        compile_message:
+          type: string
+        compile_time:
+          format: double
+          nullable: true
+          type: number
+        contest_id:
+          format: int64
+          nullable: true
+          type: integer
+        created_at:
+          format: date-time
+          type: string
+        icpc_verdict:
+          nullable: true
+          type: string
+        id:
+          format: int64
+          type: integer
+        language:
+          type: string
+        max_memory:
+          format: int64
+          type: integer
+        max_time:
+          format: double
+          type: number
+        problem_id:
+          format: int64
+          type: integer
+        score:
+          type: string
+        score_precision:
+          format: int32
+          type: integer
+        score_scale:
+          type: string
+        status:
+          type: string
+        submission_type:
+          type: string
+        user_id:
+          format: int64
+          type: integer
+      required:
+        - id
+        - created_at
+        - user_id
+        - problem_id
+        - language
+        - code_size
+        - status
+        - compile_error
+        - contest_id
+        - max_time
+        - max_memory
+        - score
+        - score_precision
+        - score_scale
+        - compile_time
+        - submission_type
+        - icpc_verdict
+      type: object
+    SubmissionListInputBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          example: https://code.algolymp.com/api/v2/public/schemas/SubmissionListInputBody.json
+          format: uri
+          readOnly: true
+          type: string
+        ascending:
+          type: boolean
+        compile_error:
+          type: boolean
+        contest_id:
+          format: int64
+          type: integer
+        from_authors:
+          type: boolean
+        id:
+          format: int64
+          type: integer
+        ids:
+          items:
+            format: int64
+            type: integer
+          type: array
+        lang:
+          type: string
+        limit:
+          format: int64
+          maximum: 50
+          type: integer
+        offset:
+          format: int64
+          type: integer
+        ordering:
+          type: string
+        problem_id:
+          format: int64
+          type: integer
+        problem_ids:
+          items:
+            format: int64
+            type: integer
+          type: array
+        problem_list_id:
+          format: int64
+          type: integer
+        status:
+          type: string
+        user_id:
+          format: int64
+          type: integer
+        user_ids:
+          items:
+            format: int64
+            type: integer
+          type: array
+        waiting:
+          type: boolean
+      type: object
+    Submissions:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          example: https://code.algolymp.com/api/v2/public/schemas/Submissions.json
+          format: uri
+          readOnly: true
+          type: string
+        count:
+          format: int64
+          type: integer
+        problems:
+          additionalProperties:
+            $ref: "#/components/schemas/Problem"
+          type: object
+        submissions:
+          items:
+            $ref: "#/components/schemas/Submission"
+          nullable: true
+          type: array
+        truncated_count:
+          type: boolean
+        users:
+          additionalProperties:
+            $ref: "#/components/schemas/UserBrief"
+          type: object
+      required:
+        - submissions
+        - count
+        - truncated_count
+        - users
+        - problems
+      type: object
+    Tag:
+      additionalProperties: false
+      properties:
+        id:
+          format: int64
+          type: integer
+        name:
+          type: string
+        type:
+          type: string
+      required:
+        - id
+        - name
+        - type
+      type: object
+    TagGroup:
+      additionalProperties: false
+      properties:
+        negate:
+          type: boolean
+        tag_ids:
+          items:
+            format: int64
+            type: integer
+          nullable: true
+          type: array
+      required:
+        - negate
+        - tag_ids
+      type: object
+    UserBrief:
+      additionalProperties: false
+      properties:
+        admin:
+          type: boolean
+        display_name:
+          type: string
+        generated:
+          type: boolean
+        id:
+          format: int64
+          type: integer
+        mentor:
+          type: boolean
+        name:
+          type: string
+        proposer:
+          type: boolean
+      required:
+        - id
+        - name
+        - admin
+        - proposer
+        - mentor
+        - display_name
+        - generated
+      type: object
+    UsersGetInputBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          example: https://code.algolymp.com/api/v2/public/schemas/UsersGetInputBody.json
+          format: uri
+          readOnly: true
+          type: string
+        ids:
+          items:
+            format: int64
+            type: integer
+          type: array
+        limit:
+          format: int64
+          maximum: 50
+          minimum: 0
+          type: integer
+        name:
+          type: string
+        name_fuzzy:
+          type: string
+        offset:
+          format: int64
+          minimum: 0
+          type: integer
+      type: object
+    UsersGetOutputBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          example: https://code.algolymp.com/api/v2/public/schemas/UsersGetOutputBody.json
+          format: uri
+          readOnly: true
+          type: string
+        total_count:
+          format: int64
+          type: integer
+        users:
+          items:
+            $ref: "#/components/schemas/UserBrief"
+          nullable: true
+          type: array
+      required:
+        - users
+        - total_count
+      type: object
+  securitySchemes:
+    bearer:
+      bearerFormat: JWT
+      scheme: bearer
+      type: http
+info:
+  title: AlgoCode
+  version: "2.0"
+openapi: 3.0.3
+paths:
+  /contests:
+    post:
+      operationId: public-get-contests
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContestGetInputBody"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContestSearchResult"
+          description: OK
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+  /contests/{contestID}:
+    get:
+      operationId: public-get-contest-by-id
+      parameters:
+        - example: 1
+          in: path
+          name: contestID
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiContest"
+          description: OK
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+  /contests/{contestID}/problems:
+    get:
+      operationId: public-get-contest-problems
+      parameters:
+        - example: 1
+          in: path
+          name: contestID
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/ScoredProblem"
+                nullable: true
+                type: array
+          description: OK
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+  /problems:
+    post:
+      operationId: public-get-problems
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProblemGetInputBody"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemSearchResult"
+          description: OK
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+  /problems/{problemID}:
+    get:
+      operationId: public-get-problem-by-id
+      parameters:
+        - example: 1
+          in: path
+          name: problemID
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiProblem"
+          description: OK
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+  /problems/{problemID}/education:
+    get:
+      operationId: public-get-problem-education
+      parameters:
+        - example: 1
+          in: path
+          name: problemID
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemEducationBundle"
+          description: OK
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+  /problems/{problemID}/statement:
+    get:
+      operationId: public-get-problem-statement
+      parameters:
+        - description: Preferred statement language, usually 'en' or 'ro'.
+          example: en
+          explode: false
+          in: query
+          name: lang
+          schema:
+            description: Preferred statement language, usually 'en' or 'ro'.
+            example: en
+            type: string
+        - example: 1
+          in: path
+          name: problemID
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemStatementContent"
+          description: OK
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+  /problems/{problemID}/statements:
+    get:
+      operationId: public-get-problem-statement-variants
+      parameters:
+        - example: 1
+          in: path
+          name: problemID
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/StatementVariant"
+                nullable: true
+                type: array
+          description: OK
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+  /problems/{problemID}/tags:
+    get:
+      operationId: public-get-problem-tags
+      parameters:
+        - example: 1
+          in: path
+          name: problemID
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/Tag"
+                nullable: true
+                type: array
+          description: OK
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+  /stats/platform:
+    get:
+      operationId: public-get-platform-stats
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  format: int64
+                  type: integer
+                type: object
+          description: OK
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+  /submissions:
+    post:
+      operationId: public-get-submissions
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmissionListInputBody"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Submissions"
+          description: OK
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+  /tags:
+    get:
+      operationId: public-get-tags
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/Tag"
+                nullable: true
+                type: array
+          description: OK
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+  /users:
+    post:
+      operationId: public-get-users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UsersGetInputBody"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsersGetOutputBody"
+          description: OK
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+servers:
+  - url: https://code.algolymp.com/api/v2/public
