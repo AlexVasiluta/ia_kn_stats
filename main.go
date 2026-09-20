@@ -5,6 +5,7 @@ import (
 	"flag"
 	"os"
 	"os/signal"
+	"path/filepath"
 
 	"go.uber.org/zap"
 	"vasiluta.ro/ia_kn_stats/algocode_scraper"
@@ -25,6 +26,8 @@ var (
 
 	kilonovaDSN = flag.String("kilonova_dsn", "", "DSN to connect to kn database")
 
+	dataDir = flag.String("data_dir", ".", "Data directory prefix")
+
 	kilonovaFlag  = flag.Bool("kilonova", true, "Add stats for kilonova")
 	infoarenaFlag = flag.Bool("infoarena", true, "Add stats for infoarena")
 	algocodeFlag  = flag.Bool("algocode", true, "Add stats for algocode")
@@ -35,27 +38,27 @@ var (
 
 func main() {
 	flag.Parse()
-	nerdarena, err := scraper.New("Nerdarena", "dump_nerdarena.db", &ia_scraper.IAParser{Host: "www.nerdarena.ro"})
+	nerdarena, err := scraper.New("Nerdarena", filepath.Join(*dataDir, "dump_nerdarena.db"), &ia_scraper.IAParser{Host: "www.nerdarena.ro"})
 	if err != nil {
 		zap.S().Fatal(err)
 	}
 
-	infoarena, err := scraper.New("Infoarena", "dump.db", &ia_scraper.IAParser{Host: "infoarena.ro"})
+	infoarena, err := scraper.New("Infoarena", filepath.Join(*dataDir, "dump.db"), &ia_scraper.IAParser{Host: "infoarena.ro"})
 	if err != nil {
 		zap.S().Fatal(err)
 	}
 
-	algocode, err := scraper.New("AlgoCode", "dump_algocode.db", &algocode_scraper.AlgolympParser{Host: "https://code.algolymp.com/api/v2/public"})
+	algocode, err := scraper.New("AlgoCode", filepath.Join(*dataDir, "dump_algocode.db"), &algocode_scraper.AlgolympParser{Host: "https://code.algolymp.com/api/v2/public"})
 	if err != nil {
 		zap.S().Fatal(err)
 	}
-	csacademy, err := scraper.New("CSAcademy", "dump_csa.db", &csacademyscraper.CSAParser{})
+	csacademy, err := scraper.New("CSAcademy", filepath.Join(*dataDir, "dump_csa.db"), &csacademyscraper.CSAParser{})
 	if err != nil {
 		zap.S().Fatal(err)
 	}
 
-	//campion, err := scraper.New("Campion", "dump_campion.db", &campionscraper.CampionParser{})
-	campion, err := scraper.New("Campion", "dump_campion.db", &ia_scraper.IAParser{Host: "invalid"})
+	//campion, err := scraper.New("Campion", filepath.Join(*dataDir, "dump_campion.db"), &campionscraper.CampionParser{})
+	campion, err := scraper.New("Campion", filepath.Join(*dataDir, "dump_campion.db"), &ia_scraper.IAParser{Host: "invalid"})
 	if err != nil {
 		zap.S().Fatal(err)
 	}
