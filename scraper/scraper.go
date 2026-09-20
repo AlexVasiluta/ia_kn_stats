@@ -3,8 +3,7 @@ package scraper
 import (
 	"context"
 	"errors"
-
-	"go.uber.org/zap"
+	"log/slog"
 )
 
 type Parser[Offset any] interface {
@@ -20,6 +19,7 @@ type Scraper[Token any] struct {
 	DB *DB
 
 	parser Parser[Token]
+	name   string
 }
 
 func (sc *Scraper[Token]) ParseNewSubs(ctx context.Context) error {
@@ -33,7 +33,7 @@ func (sc *Scraper[Token]) ParseNewSubs(ctx context.Context) error {
 		if err != nil {
 			continue
 		}
-		zap.S().Info(offset, numInserted)
+		slog.InfoContext(ctx, "Parsing new page", slog.Any("offset", offset), slog.Int("numInserted", numInserted))
 		if numInserted == 0 {
 			break
 		}
@@ -47,37 +47,38 @@ func (sc *Scraper[Token]) ParseBacklog(ctx context.Context) error {
 	if err != nil {
 		panic(err)
 	}
-	zap.S().Infof("Starting offset for long scrape (%s): %v", sc.DB.PlatformName, offset)
+	slog.InfoContext(ctx, "Starting long scrape", slog.String("name", sc.DB.PlatformName), slog.Any("offset", offset))
 	for {
-		// if offset... {
-		// 	zap.S().Infof("Offset (%s): %d", sc.DB.PlatformName, newOffset)
-		// }
 		subs, err := sc.parser.GetPage(ctx, offset)
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
-				zap.S().Info("Quitting for ", sc.DB.PlatformName)
+				slog.InfoContext(ctx, "Quitting backlog parser", slog.String("name", sc.DB.PlatformName))
 				return nil
 			}
-			zap.S().Warn(err)
+			slog.WarnContext(ctx, "Could not get page", slog.String("name", sc.DB.PlatformName), slog.Any("error", err))
 			continue
 		}
 		if len(subs) == 0 {
-			zap.S().Infof("(%s) Found page with no more submissions, might have reached the end", sc.DB.PlatformName)
+			slog.InfoContext(ctx, "Found page with no more submissions, might have reached the end", slog.String("name", sc.DB.PlatformName))
 			return nil
 		}
 		if _, err := sc.DB.InsertMonitorPage(ctx, subs); err != nil {
 			if errors.Is(err, context.Canceled) {
-				zap.S().Info("Quitting for ", sc.DB.PlatformName)
+				slog.InfoContext(ctx, "Quitting backlog parser", slog.String("name", sc.DB.PlatformName))
 				return nil
 			}
-			zap.S().Warn(err)
+			slog.WarnContext(ctx, "Could not insert page", slog.String("name", sc.DB.PlatformName), slog.Any("error", err))
 			continue
 		}
 		offset, err = sc.parser.FurthestOffset(ctx, sc.DB)
 		if err != nil {
-			zap.S().Warn(err)
+			slog.WarnContext(ctx, "Could not refetch furthest offset", slog.String("name", sc.DB.PlatformName), slog.Any("error", err))
 		}
 	}
+}
+
+func (sc *Scraper[Token]) Name() string {
+	return sc.name
 }
 
 func New[Token any](name, dbname string, parser Parser[Token]) (*Scraper[Token], error) {
@@ -85,5 +86,5 @@ func New[Token any](name, dbname string, parser Parser[Token]) (*Scraper[Token],
 	if err != nil {
 		return nil, err
 	}
-	return &Scraper[Token]{db, parser}, nil
+	return &Scraper[Token]{db, parser, name}, nil
 }

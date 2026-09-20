@@ -1,39 +1,23 @@
 package main
 
 import (
+	"log/slog"
 	"os"
-	"time"
-
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
-// snip from kilonova
-
-func initLogger(debug bool) error {
-	var encConf zapcore.EncoderConfig
+func initLogger(debug bool) *slog.Logger {
+	level := slog.LevelInfo
 	if debug {
-		encConf = zap.NewDevelopmentEncoderConfig()
-	} else {
-		encConf = zap.NewDevelopmentEncoderConfig()
-		// encConf = zap.NewProductionEncoderConfig()
-	}
-	encConf.EncodeTime = zapcore.TimeEncoder(func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
-		enc.AppendString(t.UTC().Format(time.RFC3339))
-	})
-	encConf.EncodeLevel = zapcore.CapitalColorLevelEncoder
-
-	level := zapcore.InfoLevel
-	if debug {
-		level = zapcore.DebugLevel
+		level = slog.LevelDebug
 	}
 
-	core := zapcore.NewCore(zapcore.NewConsoleEncoder(encConf), zapcore.AddSync(os.Stdout), level)
-	logg := zap.New(core, zap.AddCaller())
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		AddSource: true,
+		Level:     level,
+	}))
+	slog.SetDefault(logger)
 
-	zap.ReplaceGlobals(logg)
-
-	return nil
+	return logger
 }
 
 func init() {

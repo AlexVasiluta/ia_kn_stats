@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -11,7 +12,6 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
-	"go.uber.org/zap"
 	"golang.org/x/net/html"
 	"vasiluta.ro/ia_kn_stats/scraper"
 )
@@ -38,15 +38,14 @@ var _ scraper.Parser[int] = &CampionParser{}
 const subsPerPage = 14
 const campionFormat = "_2 January 2006, 15:04"
 
-func parseSubmission(node *html.Node) (*scraper.Submission, error) {
+func parseSubmission(ctx context.Context, node *html.Node) (*scraper.Submission, error) {
 	sel := goquery.NewDocumentFromNode(node)
-	//zap.S().Warn(node.)
 
 	var sub = new(scraper.Submission)
 	idText := strings.TrimSpace(goquery.NewDocumentFromNode(sel.Children().Nodes[0]).Text())
 	id, err := strconv.Atoi(strings.TrimPrefix(idText, "#"))
 	if err != nil {
-		zap.S().Warn("Invalid ID from ", idText)
+		slog.WarnContext(ctx, "Invalid ID", slog.String("text", idText))
 		return nil, err
 	}
 	sub.ID = id
@@ -66,7 +65,7 @@ func parseSubmission(node *html.Node) (*scraper.Submission, error) {
 	}
 	t, err := time.ParseInLocation(campionFormat, date, location)
 	if err != nil {
-		zap.S().Info("Invalid time from campion.edu.ro: ", date)
+		slog.InfoContext(ctx, "invalid time", slog.String("date", date))
 		return nil, errors.New("invalid time")
 	}
 	sub.Date = t
@@ -74,7 +73,7 @@ func parseSubmission(node *html.Node) (*scraper.Submission, error) {
 	score := strings.TrimSpace(goquery.NewDocumentFromNode(sel.Children().Nodes[7]).Find("a").First().Text())
 	val, err := strconv.Atoi(score)
 	if err != nil {
-		zap.S().Info(score)
+		slog.InfoContext(ctx, "invalid score", slog.String("score", score))
 	} else {
 		sub.Score = &val
 	}

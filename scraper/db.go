@@ -4,11 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log/slog"
 	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/mattn/go-sqlite3"
-	"go.uber.org/zap"
 )
 
 type Submission struct {
@@ -74,7 +74,7 @@ func (s *DB) InsertMonitorPage(ctx context.Context, subs []*Submission) (int, er
 		}
 		ok, err := InsertSubmission(ctx, tx, sub)
 		if err != nil {
-			zap.S().Warn(err)
+			slog.WarnContext(ctx, "Could not insert monitor page", slog.Any("error", err), slog.String("name", s.PlatformName))
 			continue
 		}
 		if ok {

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"strconv"
 	"strings"
@@ -12,7 +13,6 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/astrocode-id/go-flaresolverr"
-	"go.uber.org/zap"
 	"golang.org/x/net/html"
 	"vasiluta.ro/ia_kn_stats/scraper"
 )
@@ -37,14 +37,14 @@ var replacements = map[string]string{
 // 13 September 22 00:51:27
 const iaFormat = "_2 January 06 15:04:05"
 
-func parseSubmission(node *html.Node) (*scraper.Submission, error) {
+func parseSubmission(ctx context.Context, node *html.Node) (*scraper.Submission, error) {
 	sel := goquery.NewDocumentFromNode(node)
 
 	var sub = new(scraper.Submission)
 	idText := strings.TrimSpace(goquery.NewDocumentFromNode(sel.Children().Nodes[0]).Text())
 	id, err := strconv.Atoi(strings.TrimPrefix(idText, "#"))
 	if err != nil {
-		zap.S().Warn("Invalid ID from ", idText)
+		slog.WarnContext(ctx, "Invalid ID", slog.String("text", idText))
 		return nil, err
 	}
 	sub.ID = id
@@ -80,7 +80,7 @@ func parseSubmission(node *html.Node) (*scraper.Submission, error) {
 		sizeText = strings.ReplaceAll(sizeText, ",", ".")
 		size, err := strconv.ParseFloat(sizeText, 64)
 		if err != nil {
-			zap.S().Warnf("Invalid size string %q (id: %d)", sizeText, sub.ID)
+			slog.WarnContext(ctx, "Invalid size string", slog.String("size", sizeText), slog.Any("sub_id", sub.ID))
 		} else {
 			sub.SizeKB = &size
 		}
@@ -94,7 +94,7 @@ func parseSubmission(node *html.Node) (*scraper.Submission, error) {
 	}
 	t, err := time.ParseInLocation(iaFormat, date, location)
 	if err != nil {
-		zap.S().Info("Invalid time from infoarena: ", date)
+		slog.InfoContext(ctx, "Invalid time from infoarena", slog.String("date", date))
 		return nil, errors.New("invalid time")
 	}
 	sub.Date = t
@@ -118,12 +118,10 @@ func parseSubmission(node *html.Node) (*scraper.Submission, error) {
 			var score int
 			if len(parts) == 2 {
 				if _, err := fmt.Sscanf(parts[1], "%d", &score); err != nil {
-					zap.S().Warn("Scanf error: ", err)
+					slog.WarnContext(ctx, "Scanf error", slog.Any("error", err))
 				}
 				sub.Score = &score
-			} // else {
-			// 	// zap.S().Info(sub.ID, " ", statusText)
-			// }
+			}
 		}
 
 		if strings.Contains(statusText, "configurarea") || strings.Contains(statusText, "sistem") { // system error or problem config error
@@ -171,7 +169,7 @@ func ParseMonitorPage(ctx context.Context, host string, offset int) ([]*scraper.
 	}
 	var subs = make([]*scraper.Submission, 0, entriesCount+10)
 	for _, node := range sel.Find("tbody").Children().Nodes {
-		sub, err := parseSubmission(node)
+		sub, err := parseSubmission(ctx, node)
 		if err != nil {
 			return nil, err
 		}

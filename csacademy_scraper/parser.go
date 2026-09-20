@@ -3,13 +3,13 @@ package csacademyscraper
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"math"
 	"net/http"
 	"net/url"
 	"strconv"
 	"time"
 
-	"go.uber.org/zap"
 	"vasiluta.ro/ia_kn_stats/scraper"
 )
 
@@ -110,8 +110,7 @@ func (p *CSAParser) GetPage(ctx context.Context, offset *time.Time) ([]*scraper.
 	for _, job := range data.State.EvalJob {
 		user, ok := users[job.UserID]
 		if !ok {
-			zap.S().Warn("Could not find user")
-			user = csaUser{ID: -1, Username: "", Name: ""}
+			slog.WarnContext(ctx, "Could not find user")
 		}
 
 		pbid := strconv.Itoa(job.EvalTaskID)

@@ -2,12 +2,13 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
+	"log/slog"
 	"os"
 	"os/signal"
 	"path/filepath"
 
-	"go.uber.org/zap"
 	"vasiluta.ro/ia_kn_stats/algocode_scraper"
 	csacademyscraper "vasiluta.ro/ia_kn_stats/csacademy_scraper"
 	"vasiluta.ro/ia_kn_stats/ia_scraper"
@@ -37,113 +38,115 @@ var (
 )
 
 func main() {
+	ctx := context.Background()
+	if err := run(ctx); err != nil {
+		slog.ErrorContext(ctx, "Failed to run program", slog.Any("error", err))
+		os.Exit(1)
+	}
+}
+
+func parseBacklog[Token any](ctx context.Context, stop func(), sc *scraper.Scraper[Token]) {
+	if err := sc.ParseBacklog(ctx); err != nil {
+		slog.WarnContext(ctx, "Error parsing backend", slog.Any("error", err), slog.String("backend", sc.Name()))
+		stop()
+	}
+}
+
+func run(ctx context.Context) error {
 	flag.Parse()
 	nerdarena, err := scraper.New("Nerdarena", filepath.Join(*dataDir, "dump_nerdarena.db"), &ia_scraper.IAParser{Host: "www.nerdarena.ro"})
 	if err != nil {
-		zap.S().Fatal(err)
+		return err
 	}
 
 	infoarena, err := scraper.New("Infoarena", filepath.Join(*dataDir, "dump.db"), &ia_scraper.IAParser{Host: "infoarena.ro"})
 	if err != nil {
-		zap.S().Fatal(err)
+		return err
 	}
 
 	algocode, err := scraper.New("AlgoCode", filepath.Join(*dataDir, "dump_algocode.db"), &algocode_scraper.AlgolympParser{Host: "https://code.algolymp.com/api/v2/public"})
 	if err != nil {
-		zap.S().Fatal(err)
+		return err
 	}
 	csacademy, err := scraper.New("CSAcademy", filepath.Join(*dataDir, "dump_csa.db"), &csacademyscraper.CSAParser{})
 	if err != nil {
-		zap.S().Fatal(err)
+		return err
 	}
 
 	//campion, err := scraper.New("Campion", filepath.Join(*dataDir, "dump_campion.db"), &campionscraper.CampionParser{})
 	campion, err := scraper.New("Campion", filepath.Join(*dataDir, "dump_campion.db"), &ia_scraper.IAParser{Host: "invalid"})
 	if err != nil {
-		zap.S().Fatal(err)
+		return err
 	}
 
+	var scrapeForwardEnabled bool
+
 	if *nerdarenaFlag {
+		scrapeForwardEnabled = true
+		slog.InfoContext(ctx, "Parsing nerdarena")
 		if err := nerdarena.ParseNewSubs(context.Background()); err != nil {
-			zap.S().Fatal(err)
+			return err
 		}
 	}
 
 	if *infoarenaFlag {
-		zap.S().Info("Parsing infoarena")
+		scrapeForwardEnabled = true
+		slog.InfoContext(ctx, "Parsing infoarena")
 		if err := infoarena.ParseNewSubs(context.Background()); err != nil {
-			zap.S().Fatal(err)
+			return err
 		}
 	}
 
 	if *csacademyFlag {
+		scrapeForwardEnabled = true
+		slog.InfoContext(ctx, "Parsing csacademy")
 		if err := csacademy.ParseNewSubs(context.Background()); err != nil {
-			zap.S().Fatal(err)
+			return err
 		}
 	}
 
 	if *algocodeFlag {
+		scrapeForwardEnabled = true
+		slog.InfoContext(ctx, "Parsing algocode")
 		if err := algocode.ParseNewSubs(context.Background()); err != nil {
-			zap.S().Fatal(err)
+			return err
 		}
 	}
 
 	if *campionFlag {
+		scrapeForwardEnabled = true
+		slog.InfoContext(ctx, "Parsing campion")
 		if err := campion.ParseNewSubs(context.Background()); err != nil {
-			zap.S().Fatal(err)
+			return err
 		}
 	}
 
 	if *scrapeForward {
-		if !(*infoarenaFlag || *nerdarenaFlag || *csacademyFlag || *campionFlag || *algocodeFlag) {
-			zap.S().Fatal("Cannot scrape forward if all fetching backends are disabled")
+		if !scrapeForwardEnabled {
+			return errors.New("cannot scrape forward if all fetching backends are disabled")
 		}
-		zap.S().Info("Scrape forward for extern backends. Press Ctrl+C to quit")
+		slog.InfoContext(ctx, "Scrape forward for extern backends. Press Ctrl+C to quit")
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+
 		if *infoarenaFlag {
-			go func() {
-				if err := infoarena.ParseBacklog(ctx); err != nil {
-					zap.S().Warn(err)
-					stop()
-				}
-			}()
+			go parseBacklog(ctx, stop, infoarena)
 		}
 		if *nerdarenaFlag {
-			go func() {
-				if err := nerdarena.ParseBacklog(ctx); err != nil {
-					zap.S().Warn(err)
-					stop()
-				}
-			}()
+			go parseBacklog(ctx, stop, nerdarena)
 		}
 		if *csacademyFlag {
-			go func() {
-				if err := csacademy.ParseBacklog(ctx); err != nil {
-					zap.S().Warn(err)
-					stop()
-				}
-			}()
+			go parseBacklog(ctx, stop, csacademy)
 		}
 		if *campionFlag {
-			go func() {
-				if err := campion.ParseBacklog(ctx); err != nil {
-					zap.S().Warn(err)
-					stop()
-				}
-			}()
+			go parseBacklog(ctx, stop, campion)
 		}
 		if *algocodeFlag {
-			go func() {
-				if err := algocode.ParseBacklog(ctx); err != nil {
-					zap.S().Warn(err)
-					stop()
-				}
-			}()
+			go parseBacklog(ctx, stop, algocode)
 		}
 
 		<-ctx.Done()
-		zap.S().Info("Closing")
-		os.Exit(0)
+		slog.InfoContext(ctx, "Closing")
+		return nil
 	}
 
 	if *exportStats {
@@ -151,12 +154,12 @@ func main() {
 
 		if *kilonovaFlag {
 			if *kilonovaDSN == "" {
-				zap.S().Fatal("Empty kilonova DSN")
+				return errors.New("empty kilonova DSN")
 			}
 
 			knStats, err := GetKilonovaStats(context.Background(), *kilonovaDSN, *exportDays, *exportMonths, *exportRollInterval, *exportRollingMonths)
 			if err != nil {
-				zap.S().Fatal(err)
+				return err
 			}
 			stats = append(stats, knStats)
 		}
@@ -164,14 +167,14 @@ func main() {
 		if *infoarenaFlag {
 			iaStats, err := infoarena.DB.GetInfoarenaStats(context.Background(), *exportDays, *exportMonths, *exportRollInterval, *exportRollingMonths)
 			if err != nil {
-				zap.S().Fatal(err)
+				return err
 			}
 			stats = append(stats, iaStats)
 		}
 		if *algocodeFlag {
 			algocodeStats, err := algocode.DB.GetInfoarenaStats(context.Background(), *exportDays, *exportMonths, *exportRollInterval, *exportRollingMonths)
 			if err != nil {
-				zap.S().Fatal(err)
+				return err
 			}
 			stats = append(stats, algocodeStats)
 		}
@@ -179,7 +182,7 @@ func main() {
 		if *nerdarenaFlag {
 			naStats, err := nerdarena.DB.GetInfoarenaStats(context.Background(), *exportDays, *exportMonths, *exportRollInterval, *exportRollingMonths)
 			if err != nil {
-				zap.S().Fatal(err)
+				return err
 			}
 			stats = append(stats, naStats)
 		}
@@ -187,7 +190,7 @@ func main() {
 		if *csacademyFlag {
 			csaStats, err := csacademy.DB.GetInfoarenaStats(context.Background(), *exportDays, *exportMonths, *exportRollInterval, *exportRollingMonths)
 			if err != nil {
-				zap.S().Fatal(err)
+				return err
 			}
 			stats = append(stats, csaStats)
 		}
@@ -195,18 +198,18 @@ func main() {
 		if *campionFlag {
 			campionStats, err := campion.DB.GetInfoarenaStats(context.Background(), *exportDays, *exportMonths, *exportRollInterval, *exportRollingMonths)
 			if err != nil {
-				zap.S().Fatal(err)
+				return err
 			}
 			stats = append(stats, campionStats)
 		}
 
 		f, err := os.Create(*exportStatsPath)
 		if err != nil {
-			zap.S().Fatal(err)
+			return err
 		}
 		defer f.Close()
 
-		if err := ExportToVROBody(context.Background(), &Config{
+		return ExportToVROBody(context.Background(), &Config{
 			Platforms:        stats,
 			NumDays:          *exportDays,
 			NumMonths:        *exportMonths,
@@ -215,9 +218,8 @@ func main() {
 
 			ShowWaitingDisclaimer: *infoarenaFlag || *nerdarenaFlag,
 			ShowCSADisclaimer:     *csacademyFlag,
-		}, f); err != nil {
-			zap.S().Fatal(err)
-		}
+		}, f)
 	}
 
+	return nil
 }
